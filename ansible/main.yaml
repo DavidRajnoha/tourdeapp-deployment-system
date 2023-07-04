@@ -1,0 +1,12 @@
+---
+- hosts: webservers
+  become: yes
+  vars:
+      traefik_api_url: "traefik.{{ base_domain }}"
+      traefik_network: web
+      deploy_url: "deploy.{{ base_domain }}"
+      source_app_dir: ../python_container_deploy_app/
+  roles:
+    - { role: docker, tags: docker }
+    - { role: traefik, tags: traefik }
+    - { role: dynamic_deploy, tags: dynamic_deploy }

@@ -1,0 +1,40 @@
+---
+- name:
+  file:
+    path: "{{ traefik_dir }}"
+    state: directory
+    owner: root
+    group: root
+
+- name:
+  template:
+    src: traefik.yml.j2
+    dest: "{{ traefik_dir }}/traefik.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create the traefik network
+  docker_network:
+    name: web
+
+- name: Create the traefik container
+  docker_container:
+    name: traefik
+    image: traefik:2.2
+    restart_policy: unless-stopped
+    recreate: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "{{ traefik_dir }}/traefik.yml:/etc/traefik/traefik.yml"
+      - "{{ traefik_dir }}/acme.json:/acme.json"
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.traefik.rule: "Host(`{{ traefik_api_url }}`)"
+      # traefik.http.routers.traefik.entrypoints: "web"
+      traefik.http.routers.traefik.service: "api@internal"
+    networks:
+      - name: web

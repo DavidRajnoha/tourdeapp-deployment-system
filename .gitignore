@@ -1,0 +1,4 @@
+.ssh/
+diff.txt
+ansible/hosts.ini
+.idea/

@@ -1,0 +1,10 @@
+[webservers]
+example.org
+
+[webservers:vars]
+ansible_user=admin
+base_domain=example.org
+traefik_dir=/root/traefik
+traefik_api_url="traefik.{{ base_domain }}"
+deploy_url="deploy.{{ base_domain }}"
+target_app_dir=/root/dynamic_deploy
