@@ -1,7 +1,7 @@
-[packages]
-flask = "*"
-docker = "*"
-logging = "*"
-
 [requires]
-python_version = "3.9"
+python_version = "3.11"
+
+[packages]
+docker = "*"
+flask = "*"
+redis = "*"

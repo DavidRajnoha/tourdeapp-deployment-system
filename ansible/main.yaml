@@ -6,6 +6,7 @@
       traefik_network: web
       deploy_url: "deploy.{{ base_domain }}"
       source_app_dir: ../python_container_deploy_app/
+      redis_docker_tag: 7.0
   roles:
     - { role: docker, tags: docker }
     - { role: traefik, tags: traefik }
