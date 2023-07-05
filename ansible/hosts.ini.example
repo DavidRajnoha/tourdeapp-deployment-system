@@ -12,5 +12,5 @@ traefik_api_user=traefik
 traefik_api_password=traefik_passwd
 dynamic_deploy_user=deploy
 dynamic_deploy_password=deploy_passwd
-redis_data_dir=/root/redis
+redis_data_dir=/var/lib/redis
 ```
