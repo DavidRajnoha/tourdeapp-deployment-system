@@ -2,6 +2,8 @@ from flask import Flask, request
 import docker
 import logging
 import os
+import redis
+
 
 app = Flask(__name__)
 client = docker.from_env()
@@ -11,10 +13,27 @@ traefik_network = os.environ.get('TRAEFIK_NETWORK', 'traefik_default')
 
 logging.basicConfig(level=logging.INFO)
 
+# Create a connection to the Redis server
+redis_db = redis.Redis(host='redis-db', port=6379, db=0, charset="utf-8", decode_responses=True)
+
+
 
 @app.route('/', methods=['GET'])
 def home():
     return "The service is running!\n", 200
+
+
+@app.route('/test', methods=['GET'])
+def test_redis():
+    key = request.args.get('key', None)
+    value = request.args.get('value', None)
+
+    if key and value:
+        redis_db.set(key, value)
+
+    all_values = {key: redis_db.get(key) for key in redis_db.keys()}
+
+    return all_values, 200
 
 
 @app.route('/deploy', methods=['GET'])
