@@ -1,0 +1,129 @@
+openapi: "3.0.0"
+info:
+  version: "1"
+  title: ""
+  description: ""
+paths:
+  /application/{team-id}:
+    get:
+      operationId: "GET-application"
+      description: ""
+      parameters:
+        - in: "path"
+          name: "team-id"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/application"
+    delete:
+      operationId: "DELETE-application"
+      description: ""
+      parameters:
+        - in: "path"
+          name: "team-id"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "string"
+      responses:
+        200:
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "string"
+    post:
+      operationId: "DEPLOY-application"
+      description: ""
+      parameters:
+        - in: "query"
+          name: "public-hash"
+          schema:
+            type: "string"
+        - in: "query"
+          name: "docker-registry"
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "string"
+      responses:
+        200:
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "string"
+  /application:
+    get:
+      operationId: "GET-all-applications"
+      description: ""
+      parameters: []
+      responses:
+        200:
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/application"
+    delete:
+      operationId: "DELETE-all"
+      description: ""
+      parameters:
+        - in: "query"
+          name: "delete-all-applications"
+          schema:
+            type: "boolean"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "string"
+      responses:
+        200:
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "string"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "JWT"
+  schemas:
+    application:
+      properties:
+        team-id:
+          nullable: false
+          type: "string"
+        public-hash:
+          nullable: false
+          type: "string"
+        container-state:
+          nullable: false
+          type: "string"
+        domain:
+          nullable: false
+          type: "string"
+        running-since:
+          nullable: true
+          type: "string"
+        image-size:
+          nullable: true
+          type: "string"

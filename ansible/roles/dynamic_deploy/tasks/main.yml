@@ -22,6 +22,7 @@
       - name: redis-network
     labels:
       traefik.enable: "false"
+    stop_signal: SIGQUIT
 
 
 - name: Copy project files to the remote server
