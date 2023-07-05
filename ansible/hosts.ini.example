@@ -8,3 +8,8 @@ traefik_dir=/root/traefik
 traefik_api_url="traefik.{{ base_domain }}"
 deploy_url="deploy.{{ base_domain }}"
 target_app_dir=/root/dynamic_deploy
+traefik_api_user=traefik
+traefik_api_password=traefik_passwd
+dynamic_deploy_user=deploy
+dynamic_deploy_password=deploy_passwd
+```

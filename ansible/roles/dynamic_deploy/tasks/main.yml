@@ -27,6 +27,9 @@
     labels:
       traefik.enable: "true"
       traefik.http.routers.deploy.rule: "Host(`{{ deploy_url }}`)"
+      traefik.http.routers.deploy.middlewares: "deploy-auth"
+      traefik.http.middlewares.deploy-auth.basicauth.users: "{{ dynamic_deploy_user }}:{{ dynamic_deploy_password | password_hash('blowfish','1234567890123456789012') }}"
+
     networks:
       - name: web
     env:
