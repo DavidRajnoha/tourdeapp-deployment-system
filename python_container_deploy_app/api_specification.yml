@@ -21,6 +21,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/application"
+        404:
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "string"
     delete:
       operationId: "DELETE-application"
       description: ""
@@ -30,13 +36,14 @@ paths:
           required: true
           schema:
             type: "string"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "string"
       responses:
         200:
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "string"
+        500:
           description: ""
           content:
             application/json:
@@ -46,6 +53,11 @@ paths:
       operationId: "DEPLOY-application"
       description: ""
       parameters:
+        - in: "path"
+          name: "team-id"
+          required: true
+          schema:
+            type: "string"
         - in: "query"
           name: "public-hash"
           schema:
@@ -54,13 +66,20 @@ paths:
           name: "docker-registry"
           schema:
             type: "string"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "string"
+        - in: "query"
+          name: "image-name"
+          schema:
+            type: "string"
+        - in: "query"
+          name: "redeploy"
+          schema:
+            type: "string"
+        - in: "query"
+          name: "callback-url"
+          schema:
+            type: "string"
       responses:
-        200:
+        202:
           description: ""
           content:
             application/json:
@@ -88,13 +107,14 @@ paths:
           name: "delete-all-applications"
           schema:
             type: "boolean"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "string"
       responses:
         200:
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "string"
+        400:
           description: ""
           content:
             application/json:
@@ -108,22 +128,6 @@ components:
       bearerFormat: "JWT"
   schemas:
     application:
-      properties:
-        team-id:
-          nullable: false
-          type: "string"
-        public-hash:
-          nullable: false
-          type: "string"
-        container-state:
-          nullable: false
-          type: "string"
-        domain:
-          nullable: false
-          type: "string"
-        running-since:
-          nullable: true
-          type: "string"
-        image-size:
-          nullable: true
-          type: "string"
+      type: "object"
+      additionalProperties:
+        type: "string"

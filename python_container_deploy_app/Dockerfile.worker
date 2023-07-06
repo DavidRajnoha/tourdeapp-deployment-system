@@ -1,3 +1,4 @@
+# Dockerfile for the worker
 FROM python:3.11-slim-buster
 
 WORKDIR /app
@@ -10,6 +11,4 @@ RUN pip install pipenv \
 # Grant access to docker.sock to allow container parallelism
 VOLUME /var/run/docker.sock
 
-EXPOSE 5000
-
-CMD ["python", "app.py"]
+CMD ["python", "worker.py"]
