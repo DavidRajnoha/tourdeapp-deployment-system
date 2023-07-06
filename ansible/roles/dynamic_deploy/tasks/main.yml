@@ -3,16 +3,17 @@
   docker_network:
     name: redis-network
 
-- name: Ensure redis directort exists
+- name: Ensure redis directory exists
   file:
     path: "{{ redis_data_dir }}"
     state: directory
     owner: root
     group: root
+    mode: "0777"
 
 - name: Run Redis
   docker_container:
-    name: redis-db
+    name: "{{ redis_container_name }}"
     image: "redis:{{ redis_docker_tag }}"
     restart_policy: unless-stopped
     recreate: false
@@ -32,6 +33,34 @@
     owner: root
     group: root
     mode: "0755"
+
+- name: Build Docker image for Flask app
+  community.general.docker_image:
+    name: dynamic_deploy_rq_worker
+    source: build
+    build:
+      path: "{{ target_app_dir }}"
+      dockerfile: "{{ rq_worker_dockerfile }}"
+    state: present
+    force_source: yes
+
+- name: Run RQ worker
+  docker_container:
+    name: dynamic_deploy_rq_worker_container
+    image: dynamic_deploy_rq_worker
+    state: started
+    restart_policy: always
+    recreate: true
+    networks:
+      - name: redis-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    env:
+      BASE_DOMAIN: "{{ base_domain }}"
+      TRAEFIK_NETWORK: web
+      RQ_DB: "{{ rq_db_id }}"
+      REDIS_HOST: "{{ redis_container_name }}"
+      REDIS_PORT: "{{ redis_port }}"
 
 - name: Build Docker image for Flask app
   community.general.docker_image:
@@ -55,10 +84,12 @@
       traefik.http.routers.deploy.rule: "Host(`{{ deploy_url }}`)"
       traefik.http.routers.deploy.middlewares: "deploy-auth"
       traefik.http.middlewares.deploy-auth.basicauth.users: "{{ dynamic_deploy_user }}:{{ dynamic_deploy_password | password_hash('blowfish','1234567890123456789012') }}"
-
     networks:
       - name: web
       - name: redis-network
     env:
       BASE_DOMAIN: "{{ base_domain }}"
       TRAEFIK_NETWORK: web
+      RQ_DB: "{{ rq_db_id }}"
+      REDIS_HOST: "{{ redis_container_name }}"
+      REDIS_PORT: "{{ redis_port }}"
