@@ -12,6 +12,7 @@ from src.async_rq import store_data_for_callback, notify_callback_url
 
 traefik_domain = os.environ.get('BASE_DOMAIN', 'localhost')
 traefik_network = os.environ.get('TRAEFIK_NETWORK', 'traefik_default')
+deploy_timeout = int(os.environ.get('DEPLOY_TIMEOUT', 60))
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,7 +27,7 @@ def deploy_application(team_id, subdomain, image_name, docker_registry, redeploy
 
         container, route = deploy_container(image_name, subdomain, container_name=f"team-{team_id}",
                                             registry=docker_registry, network=traefik_network,
-                                            traefik_domain=traefik_domain)
+                                            traefik_domain=traefik_domain, timeout=deploy_timeout)
 
         application = {
             "team_id": team_id,
@@ -60,7 +61,12 @@ def check_deploy_conditions(team_id, subdomain, redeploy=True):
     elif application and redeploy:
         logging.info(f"Application already exists for team {team_id}. Redeploying...")
         container_id = application.get('container_id')
-        delete_container(container_id)
+        try:
+            delete_container(container_id)
+        except InternalDockerError as e:
+            err = f"Failed to delete container {container_id} for team {team_id}\n"
+            logging.error(err)
+            raise InternalError(err)
     elif subdomain_used:
         err = f'Subdomain {subdomain} is already in use\n'
         logging.error(err)
@@ -73,7 +79,7 @@ def check_deploy_conditions(team_id, subdomain, redeploy=True):
         raise InternalError(err)
 
 
-def delete_application(team_id):
+def delete_application(team_id, force=False):
     try:
         application = get_application_from_redis(team_id)
         if not application:
@@ -86,17 +92,30 @@ def delete_application(team_id):
             err = f'No container information stored for team {team_id}\n'
             logging.error(err)
             return err, 500
-
-        delete_container(application.get('container_id'))
-        delete_from_redis(team_id)
-        logging.info(f"Successfully deleted application for team {team_id}")
-
-        return team_id, 200
-    except (InternalRedisError, InternalDockerError) as e:
+    except InternalRedisError as e:
         return str(e), 500
 
+    try:
+        delete_container(application.get('container_id'))
+    except InternalDockerError as e:
+        err = f"Failed to delete container {container_id} for team {team_id}\n" \
+              f"Error: {str(e)}\n"
+        logging.error(err)
+        if not force:
+            return err, 500
+        else:
+            logging.info(f"Force deleting application records for team {team_id}")
 
-def delete_all_applications():
+    try:
+        delete_from_redis(team_id)
+        logging.info(f"Successfully deleted application for team {team_id}")
+    except InternalRedisError as e:
+        return str(e), 500
+
+    return None, 200
+
+
+def delete_all_applications(force=False):
     # Get all team_ids from the 'managed_applications' set
     team_ids = get_all_team_ids()
     deleted = []
@@ -104,7 +123,7 @@ def delete_all_applications():
 
     # For each team_id, try to delete its associated container
     for team_id in team_ids:
-        err, status = delete_application(team_id)
+        err, status = delete_application(team_id, force=force)
         if err:
             errors.append(err)
         deleted.append(team_id)
