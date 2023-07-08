@@ -64,8 +64,10 @@ def get_all_applications():
 
 @app.route('/application/<string:team_id>', methods=['DELETE'])
 def delete_application(team_id):
+    force = request.args.get('force', 'false').lower() in ['true', '1', 'yes']
+
     # Delete the specified application
-    err, status = delete_application_task(team_id)
+    err, status = delete_application_task(team_id, force=force)
     if status == 200:
         return jsonify({"team_id": team_id}), status
     else:
@@ -74,10 +76,12 @@ def delete_application(team_id):
 
 @app.route('/application', methods=['DELETE'])
 def delete_all_applications():
+    force = request.args.get('force', 'false').lower() in ['true', '1', 'yes']
     delete_all = request.args.get('delete-all-applications', None)
+
     # If delete_all is true, delete all applications
     if delete_all and delete_all.lower() in ['true', '1', 'yes']:
-        deleted, err, status = delete_all_applications_task()
+        deleted, err, status = delete_all_applications_task(force=force)
         return jsonify({"deleted_ids": deleted}), 200
     else:
         return jsonify({"message": "Delete all flag not set"}), 400
