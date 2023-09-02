@@ -1,0 +1,4 @@
+#config.ini
+[auth]
+username = USERNAME
+password = DEPLOY_PASSWORD
