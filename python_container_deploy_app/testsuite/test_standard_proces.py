@@ -1,105 +1,17 @@
-import random
-import time
-
-import backoff
 import requests
-import pytest
-import configparser
 from requests.auth import HTTPBasicAuth
 
 
-@pytest.fixture
-def domain_name():
-    return "tda.rajnoha.eu"
-
-
-@pytest.fixture
-def image_name():
-    return "traefik/whoami"
-
-
-@pytest.fixture
-def credentials():
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-
-    username = config['auth']['username']
-    password = config['auth']['password']
-    return username, password
-
-
-@pytest.fixture
-def deploy_container(domain_name, image_name, credentials):
-    i_value = random.randint(100, 200)
-
-    url = f'http://deploy.{domain_name}/application/{i_value}'
-    headers = {'Content-Type': 'application/json'}
-    auth = HTTPBasicAuth(credentials[0], credentials[1])
-    public_hash = f'public-hash-{i_value}'
-
-    # Query parameters
-    params = {
-        'public-hash': public_hash,
-        'image-name': image_name,
-    }
-
-    # Making the POST request
-    response = requests.post(url, headers=headers, auth=auth, params=params)
-
-    # Check the response
-    if response.status_code == 200 or response.status_code == 202:
-        print('Successfully made the POST request')
-        print('Response:', response.json())
-    else:
-        print(f'Failed to make the POST request, status code: {response.status_code}')
-        print('Response:', response.text)
-
-    yield response, public_hash
-
-    time.sleep(5)
-
-    # Initialize backoff time
-    backoff_time = 1
-
-    while backoff_time < 32:
-        # Making the DELETE request to remove the application
-        delete_response = requests.delete(url, headers=headers, auth=auth)
-
-        # Check the DELETE response
-        if delete_response.status_code == 200 or delete_response.status_code == 202:
-            print('Successfully deleted the application')
-            break
-        else:
-            print(f'Failed to delete the application, status code: {delete_response.status_code}')
-            print('Response:', delete_response.text)
-            print(f'Retrying in {backoff_time} seconds...')
-
-            # Wait for backoff time before retrying
-            time.sleep(backoff_time)
-
-            # Double the backoff time for the next iteration
-            backoff_time *= 2
-
-
-def test_deploy_container(deploy_container):
-    response, _ = deploy_container
-    assert response.status_code == 202
-
-
-@backoff.on_predicate(
-    backoff.constant,  # Constant backoff strategy
-    lambda x: x is False,  # Predicate to continue
-    interval=5,  # Constant backoff time in seconds
-    max_tries=5,  # Maximum number of tries
-    on_backoff=lambda details: print(f"Backing off {details['wait']} seconds..."),
-    on_giveup=lambda _: pytest.fail('Failed to deploy the application correctly'),
-)
-def test_container_running(deploy_container):
+def test_application_running(deploy_random_application):
+    """
+    Verifies that a randomly deployed application is running.
+    The test checks the response from the application's URL for specific text to confirm it's operational.
+    """
     # Test to verify that the deployed application is running
-    _, public_hash = deploy_container
+    _, public_hash, _ = deploy_random_application
 
     # Construct the URL for the deployed application
-    app_url = f'http://{public_hash}.tda.rajnoha.eu/'
+    app_url = f'http://deploy.{public_hash}.tda.rajnoha.eu/'
 
     # Make a GET request to the deployed application
     response = requests.get(app_url)
@@ -110,3 +22,103 @@ def test_container_running(deploy_container):
     else:
         print(f'Application is not running. Response: {response.text}')
         return False  # Continue backoff
+
+
+def test_get_application_success(domain_name, credentials, deploy_random_application):
+    """
+    Tests the successful retrieval of a deployed application's details.
+    The test deploys an application, then sends a GET request to verify the application's details.
+    """
+    _, _, team_id = deploy_random_application
+    url = f'http://deploy.{domain_name}/application/{team_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+    response = requests.get(url, auth=auth)
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert 'team_id' in data
+    assert 'container_id' in data
+    assert 'container_name' in data
+    assert 'route' in data
+    assert 'subdomain' in data
+    assert 'image_name' in data
+
+
+def test_get_application_not_found(domain_name, credentials):
+    """
+    Tests the scenario where an application is not found.
+    The test sends a GET request for a non-existent team_id and expects a 404 status code.
+    """
+    team_id = "nonexistent_team_id"
+    url = f'http://deploy.{domain_name}/application/{team_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+    response = requests.get(url, auth=auth)
+
+    assert response.status_code == 404
+
+
+def test_delete_application_success(domain_name, credentials, deploy_random_application):
+    """
+    Tests the successful deletion of a deployed application.
+    The test deploys an application, deletes it, and then verifies it no longer exists.
+    """
+    _, _, team_id = deploy_random_application
+    url = f'http://deploy.{domain_name}/application/{team_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+    # Delete the application
+    delete_response = requests.delete(url, auth=auth)
+    assert delete_response.status_code == 200 or delete_response.status_code == 202
+
+    # Verify the application no longer exists by calling the /application endpoint
+    get_response = requests.get(url, auth=auth)
+    assert get_response.status_code == 404
+
+    # Verify the application is not accessible from the public domain
+    app_url = f'http://{team_id}.tda.rajnoha.eu/'
+    get_app_response = requests.get(app_url)
+    assert get_app_response.status_code == 404
+
+
+def test_delete_application_not_found(domain_name, credentials):
+    """
+    Tests the scenario where an attempt is made to delete a non-existent application.
+    The test sends a DELETE request for a non-existent team_id and expects a 404 status code.
+    """
+    team_id = "nonexistent_team_id"
+    url = f'http://deploy.{domain_name}/application/{team_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+    # Attempt to delete a non-existent application
+    delete_response = requests.delete(url, auth=auth)
+    assert delete_response.status_code == 404
+
+
+def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_four_applications):
+    """
+    Tests the retrieval of all deployed applications.
+    The test deploys four applications and then sends a GET request to verify that all are listed.
+    """
+    url = f'http://deploy.{domain_name}/application'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+    response = requests.get(url, auth=auth)
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert isinstance(data, list)
+    assert len(data) == 4  # Verify that 4 applications are deployed
+
+    for app in data:
+        assert 'team_id' in app
+        assert 'container_id' in app
+        assert 'container_name' in app
+        assert 'route' in app
+        assert 'subdomain' in app
+        assert 'image_name' in app
