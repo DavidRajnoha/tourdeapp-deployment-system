@@ -122,12 +122,22 @@ paths:
                 type: "string"
 components:
   securitySchemes:
-    BearerAuth:
+    BasicAuth:  
       type: "http"
-      scheme: "bearer"
-      bearerFormat: "JWT"
+      scheme: "basic"
   schemas:
     application:
       type: "object"
-      additionalProperties:
-        type: "string"
+      properties:
+        team_id:
+          type: "string"
+        container_id:
+          type: "string"
+        container_name:
+          type: "string"
+        route:
+          type: "string"
+        subdomain:
+          type: "string"
+        image_name:
+          type: "string"
