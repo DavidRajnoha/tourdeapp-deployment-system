@@ -1,0 +1,91 @@
+---
+- name: Run cAdvisor container
+  docker_container:
+    name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    state: started
+    restart_policy: always
+    privileged: true
+    networks:
+      - name: web
+    labels:
+      traefik.docker.network: "web"
+      traefik.enable: "true"
+      traefik.http.routers.cadvisor.rule: "Host(`cadvisor.{{ base_domain }}`)"
+      traefik.http.routers.cadvisor.entrypoints: "web"
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/:/rootfs:ro"
+      - "/var/run:/var/run:rw"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"
+    devices:
+      - "/dev/kmsg:/dev/kmsg"
+
+- file:
+    path: "{{ prometheus_dir }}"
+    state: directory
+    owner: root
+    group: root
+
+- name: Copy Prometheus configuration
+  copy:
+    src: "prometheus.yml"
+    dest: "{{ prometheus_dir }}/prometheus.yml"  # Make sure this path is correct
+    owner: root
+    group: root
+    mode: "0644"
+
+
+- name: Run Prometheus container
+  docker_container:
+    name: prometheus
+    image: prom/prometheus:latest
+    state: started
+    restart_policy: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - "{{ prometheus_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml"
+    networks:
+      - name: web
+    labels:
+      traefik.docker.network: "web"
+      traefik.enable: "true"
+      traefik.http.routers.prometheus.rule: "Host(`prometheus.{{ base_domain }}`)"
+      traefik.http.routers.prometheus.entrypoints: "web"
+
+# Grafana
+
+- file:
+    path: "{{ grafana_dir }}"
+    state: directory
+    owner: root
+    group: root
+
+- name: Create Docker volume for Grafana
+  docker_volume:
+    name: grafana_data
+
+- name: Run Grafana container
+  docker_container:
+    name: grafana
+    image: grafana/grafana:latest
+    state: started
+    restart_policy: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - "grafana_data:/var/lib/grafana"
+    networks:
+      - name: web
+    env:
+      GF_SECURITY_ADMIN_USER: "{{ grafana_admin_user }}"
+      GF_SECURITY_ADMIN_PASSWORD: "{{  grafana_admin_password }}"
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "web"
+      traefik.http.routers.grafana.rule: "Host(`grafana.{{ base_domain }}`)"
+      traefik.http.routers.grafana.entrypoints: "web"
+

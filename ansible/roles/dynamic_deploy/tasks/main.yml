@@ -62,6 +62,8 @@
       REDIS_HOST: "{{ redis_container_name }}"
       REDIS_PORT: "{{ redis_port }}"
       DEPLOY_TIMEOUT: "{{ deploy_timeout }}"
+    labels:
+      traefik.enable: "false"
 
 - name: Build Docker image for Flask app
   community.general.docker_image:

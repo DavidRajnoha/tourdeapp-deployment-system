@@ -14,7 +14,9 @@ import concurrent
 @pytest.fixture
 def domain_name():
     """Returns the domain name for the application deployment."""
-    return "tda.rajnoha.eu"
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return config['url']['base_domain']
 
 
 @pytest.fixture
@@ -74,7 +76,7 @@ def backoff_function(domain_name, credentials):
             on_backoff=lambda details: print(f"Backing off {details['wait']} seconds..."),
         )
         def wait():
-            app_url = f'http://{public_hash}.tda.rajnoha.eu/'
+            app_url = f'http://{public_hash}.{domain_name}/'
             response = requests.get(app_url)
 
             url = f'http://deploy.{domain_name}/application/{team_id}'

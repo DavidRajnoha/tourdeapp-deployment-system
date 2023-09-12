@@ -4,11 +4,11 @@ import requests
 
 
 @pytest.mark.parametrize("num_apps", [
-    10,
+    # 10,
     # 20,
     # 30,
     # 50, Failing on AWS micro instance
-    # 300
+    300
 ])
 def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_multiple_applications, num_apps):
     # Deploy the specified number of apps
@@ -35,6 +35,6 @@ def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_
         assert 'image_name' in app
 
         # Verify that the application is running
-        app_url = f'http://{app["subdomain"]}.tda.rajnoha.eu/'
+        app_url = f'http://{app["subdomain"]}.{domain_name}/'
         app_response = requests.get(app_url)
         assert 'Hostname' in app_response.text and 'IP' in app_response.text
