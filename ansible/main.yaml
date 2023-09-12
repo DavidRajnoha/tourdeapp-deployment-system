@@ -10,5 +10,6 @@
       redis_docker_tag: 7.0
   roles:
     - { role: docker, tags: docker }
+    - { role: monitoring, tags: monitoring}
     - { role: traefik, tags: traefik }
     - { role: dynamic_deploy, tags: dynamic_deploy }

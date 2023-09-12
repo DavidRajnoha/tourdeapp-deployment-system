@@ -14,16 +14,14 @@
     group: root
     mode: "0644"
 
-- name: Create the traefik network
-  docker_network:
-    name: web
-
 - name: Create the traefik container
   docker_container:
     name: traefik
     image: traefik:2.2
     restart_policy: unless-stopped
     recreate: true
+    cpu_period: 100000
+    cpu_quota: 50000
     ports:
       - "80:80"
       - "443:443"
