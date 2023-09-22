@@ -1,7 +1,7 @@
-[webservers]
+[deploy-server]
 example.org
 
-[webservers:vars]
+[deploy-server:vars]
 ansible_user=admin
 base_domain=example.org
 traefik_dir=/root/traefik
@@ -13,4 +13,7 @@ traefik_api_password=traefik_passwd
 dynamic_deploy_user=deploy
 dynamic_deploy_password=deploy_passwd
 redis_data_dir=/var/lib/redis
+
+[registry-server]
+example.org
 ```

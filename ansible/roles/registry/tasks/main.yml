@@ -1,0 +1,17 @@
+---
+- name: Run Docker Registry
+  docker_container:
+    name: registry
+    image: registry:2
+    ports:
+      - "5000:5000"
+    restart_policy: always
+    volumes:
+      - "/var/lib/registry:/var/lib/registry"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.registry.rule: "Host(`{{ base_domain }}`)"
+      traefik.http.routers.registry.entrypoints: "websecure"
+      traefik.http.routers.registry.tls.certresolver: "tlsResolver"
+    networks:
+      - name: web

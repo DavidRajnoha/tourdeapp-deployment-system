@@ -18,7 +18,3 @@
     name: docker
     state: started
     enabled: true
-
-- name: Create the monitoring / traefik network
-  docker_network:
-    name: web

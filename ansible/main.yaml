@@ -1,5 +1,5 @@
 ---
-- hosts: webservers
+- hosts: deploy-server
   become: yes
   vars:
       traefik_api_url: "traefik.{{ base_domain }}"
@@ -10,6 +10,13 @@
       redis_docker_tag: 7.0
   roles:
     - { role: docker, tags: docker }
-    - { role: monitoring, tags: monitoring}
     - { role: traefik, tags: traefik }
+    - { role: monitoring, tags: monitoring}
     - { role: dynamic_deploy, tags: dynamic_deploy }
+
+- hosts: registry-server
+  become: yes
+  roles:
+    - { role: docker, tags: docker }
+    - { role: traefik, tags: traefik }
+    - { role: registry, tags: registry }
