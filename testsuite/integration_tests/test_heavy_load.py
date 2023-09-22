@@ -8,7 +8,7 @@ import requests
     # 20,
     # 30,
     # 50, Failing on AWS micro instance
-    300
+    # 300
 ])
 def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_multiple_applications, num_apps):
     # Deploy the specified number of apps

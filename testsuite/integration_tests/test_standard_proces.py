@@ -11,17 +11,13 @@ def test_application_running(deploy_random_application, domain_name):
     _, public_hash, _ = deploy_random_application
 
     # Construct the URL for the deployed application
-    app_url = f'http://deploy.{public_hash}.{domain_name}/'
+    app_url = f'http://{public_hash}.{domain_name}/'
 
     # Make a GET request to the deployed application
     response = requests.get(app_url)
 
     # Check if the application is running by examining the response
-    if 'Hostname' in response.text and 'IP' in response.text:
-        return True  # Stop backoff
-    else:
-        print(f'Application is not running. Response: {response.text}')
-        return False  # Continue backoff
+    assert 'Hostname' in response.text and 'IP' in response.text
 
 
 def test_get_application_success(domain_name, credentials, deploy_random_application):

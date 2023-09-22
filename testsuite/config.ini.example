@@ -1,0 +1,8 @@
+#config.ini
+[auth]
+username = USERNAME
+password = DEPLOY_PASSWORD
+
+[url]
+base_domain = BASE_DOMAIN
+```

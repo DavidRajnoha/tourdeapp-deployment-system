@@ -6,3 +6,5 @@ python_container_deploy_app/testsuite/config.ini
 *.pytest_cache/
 *__pycache__/
 *.pyc
+*/config.ini
+testsuite/config.ini
