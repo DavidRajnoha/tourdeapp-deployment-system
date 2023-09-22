@@ -22,7 +22,17 @@ def domain_name():
 @pytest.fixture
 def image_name():
     """Returns the image name to be used for the application deployment."""
-    return "traefik/whoami"
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return config['images']['whoami']
+
+
+@pytest.fixture
+def custom_registry_image():
+    """Returns the image name to be used for the application deployment."""
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return config['images']['custom_registry']
 
 
 @pytest.fixture
@@ -101,7 +111,7 @@ def deploy_application_function(domain_name, image_name, credentials, cleanup_fu
     The function sends a POST request to deploy an application and waits for it to initialize.
     It also registers a cleanup function to remove the application after the test.
     """
-    def _deploy_application(team_id, cleanup=True, backoff_max_tries=5, backoff_interval=10):
+    def _deploy_application(team_id, image_name=image_name, cleanup=True, backoff_max_tries=5, backoff_interval=10):
         url = f'http://deploy.{domain_name}/application/{team_id}'
         headers = {'Content-Type': 'application/json'}
         auth = HTTPBasicAuth(credentials[0], credentials[1])
@@ -164,6 +174,18 @@ def deploy_random_application(blame, deploy_application_function):
     team_id = f"{random.randint(100, 200)}-{blame_string}"
 
     return deploy_application_function(team_id)
+
+
+@pytest.fixture
+def deploy_custom_image(blame, deploy_application_function):
+    def _deploy_custom_image(image_name):
+        blame_string = blame()
+
+        # Generate a random team_id and incorporate the "blame" string
+        team_id = f"{random.randint(100, 200)}-{blame_string}"
+
+        return deploy_application_function(team_id, image_name=image_name)
+    return _deploy_custom_image
 
 
 @pytest.fixture
