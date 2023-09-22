@@ -5,4 +5,8 @@ password = DEPLOY_PASSWORD
 
 [url]
 base_domain = BASE_DOMAIN
+
+[images]
+whoami = traefik/whoami
+custom_registry = CUSTOM_REGISTRY_IMAGE
 ```

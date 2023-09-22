@@ -22,7 +22,17 @@ def domain_name():
 @pytest.fixture
 def image_name():
     """Returns the image name to be used for the application deployment."""
-    return "traefik/whoami"
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return config['images']['whoami']
+
+
+@pytest.fixture
+def custom_registry_image():
+    """Returns the image name to be used for the application deployment."""
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return config['images']['custom_registry']
 
 
 @pytest.fixture
