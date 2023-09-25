@@ -4,17 +4,18 @@ import requests
 
 
 @pytest.mark.parametrize("num_apps", [
+    1
     # 10,
     # 20,
     # 30,
-    # 50, Failing on AWS micro instance
+    # 50,
     # 300
 ])
 def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_multiple_applications, num_apps):
     # Deploy the specified number of apps
     deployed_apps = deploy_multiple_applications(num_apps)
 
-    url = f'http://deploy.{domain_name}/application'
+    url = f'https://deploy.{domain_name}/application'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
 
     response = requests.get(url, auth=auth)

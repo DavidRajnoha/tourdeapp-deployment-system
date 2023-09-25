@@ -18,6 +18,17 @@
     group: root
     mode: "0644"
 
+- name: Check if acme.json is a directory
+  stat:
+    path: "{{ traefik_dir }}/acme.json"
+  register: acme_stat
+
+- name: Delete acme.json directory if it exists
+  file:
+    path: "{{ traefik_dir }}/acme.json"
+    state: absent
+  when: acme_stat.stat is defined and acme_stat.stat.isdir
+
 - name: Set permissions for acme.json
   # TODO: On a new run creates directory instead of file
   file:

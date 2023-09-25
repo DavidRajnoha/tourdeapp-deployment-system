@@ -2,7 +2,7 @@
 - name: Run cAdvisor container
   docker_container:
     name: cadvisor
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
     state: started
     restart_policy: always
     privileged: true
@@ -12,7 +12,7 @@
       traefik.docker.network: "web"
       traefik.enable: "true"
       traefik.http.routers.cadvisor.rule: "Host(`cadvisor.{{ base_domain }}`)"
-      traefik.http.routers.cadvisor.entrypoints: "web"
+      traefik.http.routers.cadvisor.entrypoints: "websecure"
     ports:
       - "8080:8080"
     volumes:
@@ -54,7 +54,8 @@
       traefik.docker.network: "web"
       traefik.enable: "true"
       traefik.http.routers.prometheus.rule: "Host(`prometheus.{{ base_domain }}`)"
-      traefik.http.routers.prometheus.entrypoints: "web"
+      traefik.http.routers.prometheus.entrypoints: "websecure"
+      traefik.http.routers.prometheus.tls.certresolver: "tlsResolver"
 
 # Grafana
 
@@ -87,5 +88,5 @@
       traefik.enable: "true"
       traefik.docker.network: "web"
       traefik.http.routers.grafana.rule: "Host(`grafana.{{ base_domain }}`)"
-      traefik.http.routers.grafana.entrypoints: "web"
-
+      traefik.http.routers.grafana.entrypoints: "websecure"
+      traefik.http.routers.grafana.tls.certresolver: "tlsResolver"

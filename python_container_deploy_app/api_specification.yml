@@ -63,7 +63,7 @@ paths:
           schema:
             type: "string"
         - in: "query"
-          name: "docker-registry"
+          name: "registry-credentials"
           schema:
             type: "string"
         - in: "query"

@@ -5,18 +5,49 @@ import logging
 
 client = docker.from_env()
 
+
 class InternalDockerError(Exception):
     pass
+
 
 class InvalidParameterError(Exception):
     pass
 
 
-def deploy_container(image_name, subdomain, container_name, registry=None,
+def extract_registry_from_image_name(image_name):
+    """
+    Extract the Docker registry URL from a given Docker image name.
+
+    Parameters:
+        image_name (str): The full name of the Docker image.
+
+    Returns:
+        str: The extracted Docker registry URL, or None if not found.
+    """
+    parts = image_name.split('/')
+
+    # If there's only one part, it means the image is from Docker Hub
+    if len(parts) == 1:
+        return None  # Default to Docker Hub
+
+    # Check if the first part contains a '.' or a ':', indicating it's likely a registry URL
+    if '.' in parts[0] or ':' in parts[0]:
+        return parts[0]
+
+    return None  # Default to Docker Hub
+
+
+def deploy_container(image_name, subdomain, container_name, registry_credentials=None,
                      network=None, traefik_domain=None, timeout=60):
     try:
-        if registry:
-            image_name = registry + "/" + image_name
+        logging.info(f'Attempting to pull image: {image_name} with credentials {registry_credentials}')
+        if registry_credentials:
+            registry = extract_registry_from_image_name(image_name)
+            if not registry:
+                raise InvalidParameterError(f'Could not extract registry from image name {image_name}')
+            username, password = registry_credentials.split(':')
+            login_result = client.login(username=username, password=password, registry=registry)
+            logging.info(f'Tried to log in to registry {registry} with username {username} with result {login_result}')
 
         routed_domain = f"{subdomain}.{traefik_domain}"
 

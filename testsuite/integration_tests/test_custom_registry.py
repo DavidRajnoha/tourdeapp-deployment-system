@@ -7,7 +7,7 @@ def custom_application(deploy_custom_image, custom_registry_image):
     return deploy_custom_image(custom_registry_image)
 
 
-def test_run_image_from_custom_registry(domain_name, custom_application):
+def test_run_image_from_custom_registry(domain_name, custom_application, registry_credentials):
     _, public_hash, _ = custom_application
     app_url = f'http://{public_hash}.{domain_name}/'
 

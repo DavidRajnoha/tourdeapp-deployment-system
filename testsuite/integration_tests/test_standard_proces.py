@@ -26,7 +26,7 @@ def test_get_application_success(domain_name, credentials, deploy_random_applica
     The test deploys an application, then sends a GET request to verify the application's details.
     """
     _, _, team_id = deploy_random_application
-    url = f'http://deploy.{domain_name}/application/{team_id}'
+    url = f'https://deploy.{domain_name}/application/{team_id}'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
 
     response = requests.get(url, auth=auth)
@@ -49,7 +49,7 @@ def test_get_application_not_found(domain_name, credentials):
     The test sends a GET request for a non-existent team_id and expects a 404 status code.
     """
     team_id = "nonexistent_team_id"
-    url = f'http://deploy.{domain_name}/application/{team_id}'
+    url = f'https://deploy.{domain_name}/application/{team_id}'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
 
     response = requests.get(url, auth=auth)
@@ -63,7 +63,7 @@ def test_delete_application_success(domain_name, credentials, deploy_random_appl
     The test deploys an application, deletes it, and then verifies it no longer exists.
     """
     _, public_hash, team_id = deploy_random_application
-    url = f'http://deploy.{domain_name}/application/{team_id}'
+    url = f'https://deploy.{domain_name}/application/{team_id}'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
 
     # Delete the application
@@ -86,7 +86,7 @@ def test_delete_application_not_found(domain_name, credentials):
     The test sends a DELETE request for a non-existent team_id and expects a 404 status code.
     """
     team_id = "nonexistent_team_id"
-    url = f'http://deploy.{domain_name}/application/{team_id}'
+    url = f'https://deploy.{domain_name}/application/{team_id}'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
 
     # Attempt to delete a non-existent application
@@ -99,7 +99,7 @@ def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_
     Tests the retrieval of all deployed applications.
     The test deploys four applications and then sends a GET request to verify that all are listed.
     """
-    url = f'http://deploy.{domain_name}/application'
+    url = f'https://deploy.{domain_name}/application'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
 
     response = requests.get(url, auth=auth)
