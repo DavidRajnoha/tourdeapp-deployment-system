@@ -39,14 +39,14 @@ def get_application(team_id):
 @app.route('/application/<string:team_id>', methods=['POST'])
 def deploy_application(team_id):
     public_hash = request.args.get('public-hash', team_id)
-    docker_registry = request.args.get('docker-registry', None)
+    registry_credentials = request.args.get('registry-credentials', None)
     image_name = request.args.get('image-name', get_image_name(team_id))
     redeploy = request.args.get('redeploy', 'true').lower() in ['true', '1', 'yes']
     callback_url = request.args.get('callback-url', None)
 
     # Enqueue the function call
     job = queue.enqueue_call(func=deploy_application_task,
-                             args=(team_id, public_hash, image_name, docker_registry, redeploy))
+                             args=(team_id, public_hash, image_name, registry_credentials, redeploy))
 
     # Enqueue the callback
     if callback_url is not None:
@@ -55,6 +55,7 @@ def deploy_application(team_id):
         job.save_meta()
 
     return jsonify({"message": "Deployment started", "job_id": job.get_id()}), 202
+
 
 @app.route('/application', methods=['GET'])
 def get_all_applications():
@@ -85,6 +86,7 @@ def delete_all_applications():
         return jsonify({"deleted_ids": deleted}), 200
     else:
         return jsonify({"message": "Delete all flag not set"}), 400
+
 
 def get_image_name(team_id):
     return f"traefik/whoami"

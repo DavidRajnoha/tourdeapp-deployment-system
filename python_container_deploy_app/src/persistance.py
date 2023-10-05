@@ -84,5 +84,6 @@ def flush_redis():
         logging.error('Redis error: {}'.format(str(e)))
         raise InternalRedisError('Redis error: {}'.format(str(e)))
 
+
 class InternalRedisError(Exception):
     pass

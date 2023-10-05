@@ -13,8 +13,21 @@
     name: docker-compose
     state: present
 
+- name: Create Docker configuration directory
+  file:
+    path: /etc/docker
+    state: directory
+
+- name: Update Docker daemon settings
+  copy:
+    content: |
+      {
+        "shutdown-timeout": 120
+      }
+    dest: /etc/docker/daemon.json
+
 - name: Start Docker service
   service:
     name: docker
-    state: started
+    state: restarted
     enabled: true

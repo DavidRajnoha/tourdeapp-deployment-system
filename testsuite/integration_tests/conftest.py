@@ -9,6 +9,8 @@ import socket
 import getpass
 from concurrent.futures import ThreadPoolExecutor
 import concurrent
+import docker
+import string
 
 
 @pytest.fixture
@@ -28,11 +30,60 @@ def image_name():
 
 
 @pytest.fixture
-def custom_registry_image():
-    """Returns the image name to be used for the application deployment."""
+def platform():
+    """Returns the platform to be used for the application deployment."""
     config = configparser.ConfigParser()
     config.read('config.ini')
-    return config['images']['custom_registry']
+    return config['images']['platform']
+
+@pytest.fixture
+def registry_credentials():
+    """Returns the credentials for the custom Docker registry."""
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return f"{config['images']['custom_registry_user']}:{config['images']['custom_registry_password']}"
+
+
+@pytest.fixture
+def custom_registry_image(image_name, platform):
+    """
+    Returns the image name to be used for the application deployment after performing several operations:
+
+    1. Reads the custom Docker registry information from a configuration file ('config.ini').
+    2. Logs into the custom Docker registry using the provided credentials.
+    3. Pulls the specified Docker image from Docker Hub.
+    4. Generates a random tag and retags the pulled image with this tag and the custom registry.
+    5. Pushes the retagged image to the custom Docker registry.
+
+    After the test execution, the fixture also removes the retagged image from the local machine.
+    """
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    custom_registry = config['images']['custom_registry']
+    custom_registry_user = config['images']['custom_registry_user']
+    custom_registry_password = config['images']['custom_registry_password']
+
+    # Initialize Docker client
+    client = docker.from_env()
+    client.login(username=custom_registry_user, password=custom_registry_password, registry=custom_registry)
+
+    # Generate a random tag
+    random_tag = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+
+    # Pull the image from Docker Hub
+    image = client.images.pull(image_name, platform=platform)
+
+    # Retag the image with the custom registry and random tag
+    custom_registry_retagged_image = f"{custom_registry}/{image_name}:{random_tag}"
+    image.tag(custom_registry_retagged_image)
+
+    # Push the retagged image to the custom registry
+    client.images.push(custom_registry_retagged_image)
+
+    yield custom_registry_retagged_image
+
+    # Delete the image from the custom registry
+    client.images.remove(custom_registry_retagged_image)
 
 
 @pytest.fixture
@@ -89,7 +140,7 @@ def backoff_function(domain_name, credentials):
             app_url = f'http://{public_hash}.{domain_name}/'
             response = requests.get(app_url)
 
-            url = f'http://deploy.{domain_name}/application/{team_id}'
+            url = f'https://deploy.{domain_name}/application/{team_id}'
             auth = HTTPBasicAuth(credentials[0], credentials[1])
             response_api = requests.get(url, auth=auth)
 
@@ -111,15 +162,19 @@ def deploy_application_function(domain_name, image_name, credentials, cleanup_fu
     The function sends a POST request to deploy an application and waits for it to initialize.
     It also registers a cleanup function to remove the application after the test.
     """
-    def _deploy_application(team_id, image_name=image_name, cleanup=True, backoff_max_tries=5, backoff_interval=10):
-        url = f'http://deploy.{domain_name}/application/{team_id}'
+    def _deploy_application(team_id, custom_image_name=image_name, cleanup=True, backoff_max_tries=5, backoff_interval=10,
+                            registry_credentials=None):
+        url = f'https://deploy.{domain_name}/application/{team_id}'
         headers = {'Content-Type': 'application/json'}
         auth = HTTPBasicAuth(credentials[0], credentials[1])
         public_hash = f'public-hash-{team_id}'
         params = {
             'public-hash': public_hash,
-            'image-name': image_name,
+            'image-name': custom_image_name,
         }
+        if registry_credentials:
+            params['registry-credentials'] = registry_credentials
+
         response = requests.post(url, headers=headers, auth=auth, params=params)
 
         if response.status_code == 200 or response.status_code == 202:
@@ -177,14 +232,15 @@ def deploy_random_application(blame, deploy_application_function):
 
 
 @pytest.fixture
-def deploy_custom_image(blame, deploy_application_function):
+def deploy_custom_image(blame, deploy_application_function, registry_credentials):
     def _deploy_custom_image(image_name):
         blame_string = blame()
 
         # Generate a random team_id and incorporate the "blame" string
         team_id = f"{random.randint(100, 200)}-{blame_string}"
 
-        return deploy_application_function(team_id, image_name=image_name)
+        return deploy_application_function(team_id, custom_image_name=image_name,
+                                           registry_credentials=registry_credentials)
     return _deploy_custom_image
 
 
@@ -235,7 +291,7 @@ def initial_cleanup(domain_name, credentials):
     Performs an initial cleanup by deleting all existing applications.
     This fixture is intended to run before any tests to ensure a clean state.
     """
-    url = f'http://deploy.{domain_name}/application'
+    url = f'https://deploy.{domain_name}/application'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
     params = {'delete-all-applications': True}
 

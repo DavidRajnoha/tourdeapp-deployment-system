@@ -1,7 +1,7 @@
 import logging
 import os
 
-from src.docker import deploy_container, delete_container,\
+from src.docker_deploy import deploy_container, delete_container,\
     InternalDockerError, InvalidParameterError
 
 from src.persistance import save_to_redis, delete_from_redis, \
@@ -20,13 +20,16 @@ class InternalError(Exception):
     pass
 
 
-def deploy_application(team_id, subdomain, image_name, docker_registry, redeploy=True):
+def deploy_application(team_id, subdomain, image_name, registry_credentials, redeploy=True):
     application, err, status_code = None, "Failed to assign error cause for this case", 500
     try:
         check_deploy_conditions(team_id, subdomain, redeploy)
 
+        logging.debug(f"Deploying application for team {team_id} with subdomain {subdomain} and image {image_name}")
+        logging.debug(f"Registry credentials: {registry_credentials}")
+
         container, route = deploy_container(image_name, subdomain, container_name=f"team-{team_id}",
-                                            registry=docker_registry, network=traefik_network,
+                                            registry_credentials=registry_credentials, network=traefik_network,
                                             traefik_domain=traefik_domain, timeout=deploy_timeout)
 
         application = {

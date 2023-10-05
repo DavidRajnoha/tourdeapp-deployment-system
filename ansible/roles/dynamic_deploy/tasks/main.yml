@@ -87,6 +87,8 @@
       traefik.http.routers.deploy.rule: "Host(`{{ deploy_url }}`)"
       traefik.http.routers.deploy.middlewares: "deploy-auth"
       traefik.http.middlewares.deploy-auth.basicauth.users: "{{ dynamic_deploy_user }}:{{ dynamic_deploy_password | password_hash('blowfish','1234567890123456789012') }}"
+      traefik.http.routers.deploy.entrypoints: "websecure"
+      traefik.http.routers.deploy.tls.certresolver: "tlsResolver"
     networks:
       - name: web
       - name: redis-network
