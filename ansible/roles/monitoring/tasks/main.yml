@@ -13,6 +13,7 @@
       traefik.enable: "true"
       traefik.http.routers.cadvisor.rule: "Host(`cadvisor.{{ base_domain }}`)"
       traefik.http.routers.cadvisor.entrypoints: "websecure"
+      traefik.http.routers.cadvisor.tls.certresolver: "tlsResolver"
     ports:
       - "8080:8080"
     volumes:

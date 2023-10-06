@@ -49,11 +49,12 @@ def deploy_container(image_name, subdomain, container_name, registry_credentials
             login_result = client.login(username=username, password=password, registry=registry)
             logging.info(f'Tried to log in to registry {registry} with username {username} with result {login_result}')
 
-        routed_domain = f"{subdomain}.{traefik_domain}"
+        routed_domain = f"{subdomain}.app.{traefik_domain}"
 
         labels = {
             "traefik.enable": "true",
-            f"traefik.http.routers.{subdomain}.rule": f"Host(`{routed_domain}`)"
+            f"traefik.http.routers.{subdomain}.rule": f"Host(`{routed_domain}`)",
+            f"traefik.http.routers.{subdomain}.entrypoints": "web",
         }
         logging.info(f'Attempting to run container from image: {image_name}')
         container = client.containers.run(image_name,

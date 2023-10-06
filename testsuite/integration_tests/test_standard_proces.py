@@ -8,10 +8,10 @@ def test_application_running(deploy_random_application, domain_name):
     The test checks the response from the application's URL for specific text to confirm it's operational.
     """
     # Test to verify that the deployed application is running
-    _, public_hash, _ = deploy_random_application
+    _, subdomain, _ = deploy_random_application
 
     # Construct the URL for the deployed application
-    app_url = f'http://{public_hash}.{domain_name}/'
+    app_url = f'http://{subdomain}.app.{domain_name}/'
 
     # Make a GET request to the deployed application
     response = requests.get(app_url)
@@ -62,7 +62,7 @@ def test_delete_application_success(domain_name, credentials, deploy_random_appl
     Tests the successful deletion of a deployed application.
     The test deploys an application, deletes it, and then verifies it no longer exists.
     """
-    _, public_hash, team_id = deploy_random_application
+    _, subdomain, team_id = deploy_random_application
     url = f'https://deploy.{domain_name}/application/{team_id}'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
 
@@ -75,7 +75,7 @@ def test_delete_application_success(domain_name, credentials, deploy_random_appl
     assert get_response.status_code == 404
 
     # Verify the application is not accessible from the public domain
-    app_url = f'http://deploy.{public_hash}.{domain_name}/'
+    app_url = f'http://deploy.{subdomain}.app.{domain_name}/'
     get_app_response = requests.get(app_url)
     assert get_app_response.status_code == 404
 

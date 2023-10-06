@@ -59,7 +59,7 @@ paths:
           schema:
             type: "string"
         - in: "query"
-          name: "public-hash"
+          name: "subdomain"
           schema:
             type: "string"
         - in: "query"

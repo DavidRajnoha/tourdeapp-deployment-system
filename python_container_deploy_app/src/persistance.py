@@ -60,7 +60,7 @@ def delete_from_redis(team_id):
     application = redis_db.hgetall(team_id)
     if not redis_db.sismember('managed_applications', team_id):
         if application:
-            redis_db.hdel(team_id, 'container_id', 'route', 'public_hash', 'subdomain', 'image_name', 'team_id')
+            redis_db.hdel(team_id, 'container_id', 'route', 'subdomain', 'image_name', 'team_id')
             return False, f'Application data for team {team_id} exists but is not in the managed_applications set\n'
         return False, f'No application data for team {team_id}\n'
 

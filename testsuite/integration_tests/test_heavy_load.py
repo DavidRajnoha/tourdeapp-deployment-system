@@ -36,6 +36,6 @@ def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_
         assert 'image_name' in app
 
         # Verify that the application is running
-        app_url = f'http://{app["subdomain"]}.{domain_name}/'
+        app_url = f'http://{app["subdomain"]}.app.{domain_name}/'
         app_response = requests.get(app_url)
         assert 'Hostname' in app_response.text and 'IP' in app_response.text
