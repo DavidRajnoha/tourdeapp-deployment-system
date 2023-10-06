@@ -1,0 +1,62 @@
+name: Deploy Staging
+
+on: 
+ push:
+  branches:
+   - main
+
+# uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1
+jobs:
+  run-ansible:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Run Ansible playbook
+      uses: dawidd6/action-ansible-playbook@v2.6.1
+      with:
+        # Ansible playbook filepath
+        playbook: main.yml
+        # Ansible Galaxy requirements filepath
+        # requirements: # optional
+        # Root directory of Ansible project (defaults to current)
+        directory: ansible
+        # SSH private key used to connect to the host
+        key: ${{ secrets.SSH_STAGING }}
+        # Custom content to write into hosts
+        inventory: |
+          [deploy-server]
+          ${{ vars.STAGING_DOMAIN }}
+          
+          [deploy-server:vars]
+          ansible_user=${{ vars.STAGING_USER }}
+          base_domain=${{ vars.STAGING_DOMAIN }}
+          platform=${{ vars.STAGING_ARCH }}
+          debug_mode=false
+          
+          traefik_dir=/root/traefik
+          traefik_api_url="traefik.{{ base_domain }}"
+          traefik_api_user=traefik
+          traefik_api_password=${{ secrets.TRAEFIK_STAGING_PASSWORD }}
+          traefik_acme_email=${{ vars.STAGING_ACME_EMAIL }}
+          
+          redis_data_dir=/var/lib/redis
+          
+          target_app_dir=/root/dynamic_deploy
+          deploy_url="deploy.{{ base_domain }}"
+          dynamic_deploy_user=deploy
+          dynamic_deploy_password=${{ secrets.DEPLOY_STAGING_PASSWORD }}
+          
+          prometheus_dir=/root/prometheus
+          grafana_dir=/root/grafana
+          grafana_admin_user=admin
+          grafana_admin_password=${{ secrets.GRAFANA_STAGING_PASSWORD }}
+        # The password used for decrypting vaulted files
+        # vault_password: # optional
+        # Contents of SSH known_hosts file
+        # known_hosts: # optional
+        # Extra options that should be passed to ansible-playbook command
+        # options: # optional
+        # Set to "true" if root is required for running your playbook
+        # sudo: # optional
+        # Set to "true" if the Ansible output should not include colors (defaults to "false")
+        # no_color: # optional
