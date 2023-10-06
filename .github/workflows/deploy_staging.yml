@@ -4,6 +4,7 @@ on:
  push:
   branches:
    - main
+   - pipeline-staging
 
 # uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1
 jobs:
@@ -11,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
     - name: Run Ansible playbook
       uses: dawidd6/action-ansible-playbook@v2.6.1
       with:
