@@ -4,6 +4,10 @@ WORKDIR /app
 
 COPY . /app
 
+# Setup entry point
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 RUN pip install pipenv \
     && pipenv install --system --deploy
 
@@ -12,4 +16,4 @@ VOLUME /var/run/docker.sock
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+CMD ["/entrypoint.sh"]
