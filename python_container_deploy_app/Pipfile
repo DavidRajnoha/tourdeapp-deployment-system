@@ -7,9 +7,10 @@ flask = "*"
 redis = "*"
 rq = "*"
 requests = "*"
-backoff = "*"
+gunicorn = "*"
 
 [dev-packages]
 pytest = "*"
 ansible-runner = "*"
 aiohttp = "*"
+backoff = "*"

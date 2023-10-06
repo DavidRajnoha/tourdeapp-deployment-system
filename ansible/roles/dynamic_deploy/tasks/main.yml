@@ -98,3 +98,4 @@
       RQ_DB: "{{ rq_db_id }}"
       REDIS_HOST: "{{ redis_container_name }}"
       REDIS_PORT: "{{ redis_port }}"
+      DEBUG_MODE: "{{ debug_mode }}"

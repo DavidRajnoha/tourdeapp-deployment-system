@@ -93,4 +93,7 @@ def get_image_name(team_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    debug_mode = os.environ.get('DEBUG_MODE', 'False').lower() == 'true'
+    if debug_mode:
+        logging.warning("Application is running in debug mode")
+        app.run(debug=debug_mode, host='0.0.0.0')
