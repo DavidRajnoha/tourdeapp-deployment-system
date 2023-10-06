@@ -11,7 +11,7 @@ def test_application_running(deploy_random_application, domain_name):
     _, public_hash, _ = deploy_random_application
 
     # Construct the URL for the deployed application
-    app_url = f'http://{public_hash}.{domain_name}/'
+    app_url = f'http://{public_hash}.app.{domain_name}/'
 
     # Make a GET request to the deployed application
     response = requests.get(app_url)
@@ -75,7 +75,7 @@ def test_delete_application_success(domain_name, credentials, deploy_random_appl
     assert get_response.status_code == 404
 
     # Verify the application is not accessible from the public domain
-    app_url = f'http://deploy.{public_hash}.{domain_name}/'
+    app_url = f'http://deploy.{public_hash}.app.{domain_name}/'
     get_app_response = requests.get(app_url)
     assert get_app_response.status_code == 404
 

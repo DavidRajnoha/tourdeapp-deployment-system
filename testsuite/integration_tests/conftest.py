@@ -137,7 +137,7 @@ def backoff_function(domain_name, credentials):
             on_backoff=lambda details: print(f"Backing off {details['wait']} seconds..."),
         )
         def wait():
-            app_url = f'http://{public_hash}.{domain_name}/'
+            app_url = f'http://{public_hash}.app.{domain_name}/'
             response = requests.get(app_url)
 
             url = f'https://deploy.{domain_name}/application/{team_id}'
