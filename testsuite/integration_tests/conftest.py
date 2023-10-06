@@ -128,7 +128,7 @@ def backoff_function(domain_name, credentials):
     """Returns a function that waits for an application to initialize.
     The function uses exponential backoff to periodically check if the application is running.
     """
-    def _wait_for_application_to_initialize(public_hash, team_id, max_tries, interval):
+    def _wait_for_application_to_initialize(subdomain, team_id, max_tries, interval):
         @backoff.on_predicate(
             backoff.constant,
             lambda x: x is False,
@@ -137,7 +137,7 @@ def backoff_function(domain_name, credentials):
             on_backoff=lambda details: print(f"Backing off {details['wait']} seconds..."),
         )
         def wait():
-            app_url = f'http://{public_hash}.app.{domain_name}/'
+            app_url = f'http://{subdomain}.app.{domain_name}/'
             response = requests.get(app_url)
 
             url = f'https://deploy.{domain_name}/application/{team_id}'
@@ -167,9 +167,9 @@ def deploy_application_function(domain_name, image_name, credentials, cleanup_fu
         url = f'https://deploy.{domain_name}/application/{team_id}'
         headers = {'Content-Type': 'application/json'}
         auth = HTTPBasicAuth(credentials[0], credentials[1])
-        public_hash = f'public-hash-{team_id}'
+        subdomain = f'public-hash-{team_id}'
         params = {
-            'public-hash': public_hash,
+            'subdomain': subdomain,
             'image-name': custom_image_name,
         }
         if registry_credentials:
@@ -189,9 +189,9 @@ def deploy_application_function(domain_name, image_name, credentials, cleanup_fu
             request.addfinalizer(cleanup_function(url, team_id))
 
         # Wait for the application to initialize
-        backoff_function(public_hash, team_id, backoff_max_tries, backoff_interval)
+        backoff_function(subdomain, team_id, backoff_max_tries, backoff_interval)
 
-        return response, public_hash, team_id
+        return response, subdomain, team_id
 
     return _deploy_application
 
@@ -258,9 +258,9 @@ def deploy_multiple_applications(deploy_application_function, blame):
 
         def deploy_app(i):
             team_id = blame() + str(i)
-            response, public_hash, team_id = deploy_application_function(team_id, backoff_max_tries=backoff_max_tries,
+            response, subdomain, team_id = deploy_application_function(team_id, backoff_max_tries=backoff_max_tries,
                                                                          backoff_interval=backoff_interval)
-            return {'response': response, 'public_hash': public_hash, 'team_id': team_id}
+            return {'response': response, 'subdomain': subdomain, 'team_id': team_id}
 
         # Use ThreadPoolExecutor to run deploy_app function asynchronously
         with ThreadPoolExecutor() as executor:

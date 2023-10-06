@@ -38,7 +38,7 @@ def get_application(team_id):
 
 @app.route('/application/<string:team_id>', methods=['POST'])
 def deploy_application(team_id):
-    public_hash = request.args.get('public-hash', team_id)
+    subdomain = request.args.get('subdomain', team_id)
     registry_credentials = request.args.get('registry-credentials', None)
     image_name = request.args.get('image-name', get_image_name(team_id))
     redeploy = request.args.get('redeploy', 'true').lower() in ['true', '1', 'yes']
@@ -46,7 +46,7 @@ def deploy_application(team_id):
 
     # Enqueue the function call
     job = queue.enqueue_call(func=deploy_application_task,
-                             args=(team_id, public_hash, image_name, registry_credentials, redeploy))
+                             args=(team_id, subdomain, image_name, registry_credentials, redeploy))
 
     # Enqueue the callback
     if callback_url is not None:
