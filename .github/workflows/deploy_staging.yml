@@ -15,11 +15,11 @@ jobs:
       uses: dawidd6/action-ansible-playbook@v2.6.1
       with:
         # Ansible playbook filepath
-        playbook: main.yml
+        playbook: ansible/main.yml
         # Ansible Galaxy requirements filepath
         # requirements: # optional
         # Root directory of Ansible project (defaults to current)
-        directory: ./ansible
+        # directory: 
         # SSH private key used to connect to the host
         key: ${{ secrets.SSH_STAGING }}
         # Custom content to write into hosts
