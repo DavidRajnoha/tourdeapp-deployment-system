@@ -6,6 +6,13 @@ import logging
 client = docker.from_env()
 
 
+class DockerContainerStartError(Exception):
+    def __init__(self, message, container_logs, container_status):
+        super().__init__(message)
+        self.container_status = container_status
+        self.container_logs = container_logs
+
+
 class InternalDockerError(Exception):
     pass
 
@@ -71,7 +78,8 @@ def deploy_container(image_name, subdomain, container_name, registry_credentials
         wait_for_container(container, timeout)
         logging.info('Started container with id: {}'.format(container.short_id))
 
-        return container, routed_domain
+        return (container.status, container.id, container.name,
+                routed_domain, container.logs().decode('utf-8'))
 
     except docker.errors.ImageNotFound:
         logging.error('Image {} not found.'.format(image_name))
@@ -98,12 +106,13 @@ def wait_for_container(container, timeout):
             logging.error(err)
 
             container_logs = container.logs().decode('utf-8')
+            container_status = container.status
             logging.info(container_logs)
             container.stop()
             container.remove()
             logging.info(f'Stopped and removed container {container.id}')
 
-            raise InternalDockerError(err)
+            raise DockerContainerStartError(err, container_logs, container_status)
 
 
 def delete_container(container_id):

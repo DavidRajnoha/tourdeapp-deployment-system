@@ -41,6 +41,7 @@ def test_get_application_success(domain_name, credentials, deploy_random_applica
     assert 'route' in data
     assert 'subdomain' in data
     assert 'image_name' in data
+    assert data['status'] == 'running'
 
 
 def test_get_application_not_found(domain_name, credentials):

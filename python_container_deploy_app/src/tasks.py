@@ -2,7 +2,7 @@ import logging
 import os
 
 from src.docker_deploy import deploy_container, delete_container,\
-    InternalDockerError, InvalidParameterError
+    InternalDockerError, InvalidParameterError, DockerContainerStartError
 
 from src.persistance import save_to_redis, delete_from_redis, \
     is_subdomain_used, get_all_team_ids, InternalRedisError, flush_redis
@@ -21,34 +21,49 @@ class InternalError(Exception):
 
 
 def deploy_application(team_id, subdomain, image_name, registry_credentials, redeploy=True):
-    application, err, status_code = None, "Failed to assign error cause for this case", 500
+    application = {
+        "team_id": team_id,
+        "subdomain": subdomain,
+        "image_name": image_name
+    }
+
+    err, status_code = "Failed to assign error cause for this case", 500
     try:
         check_deploy_conditions(team_id, subdomain, redeploy)
 
         logging.debug(f"Deploying application for team {team_id} with subdomain {subdomain} and image {image_name}")
         logging.debug(f"Registry credentials: {registry_credentials}")
 
-        container, route = deploy_container(image_name, subdomain, container_name=f"team-{team_id}",
+        container_info = deploy_container(image_name, subdomain, container_name=f"team-{team_id}",
                                             registry_credentials=registry_credentials, network=traefik_network,
                                             traefik_domain=traefik_domain, timeout=deploy_timeout)
-
-        application = {
-            "team_id": team_id,
-            "container_id": container.id,
-            "container_name": container.name,
-            "route": route,
-            "subdomain": subdomain,
-            "image_name": image_name
-        }
-        save_to_redis(application)
+        application["status"] = container_info[0]
+        application["container_id"] = container_info[1]
+        application["container_name"] = container_info[2]
+        application["route"] = container_info[3]
+        application["logs"] = container_info[4]
 
     except InvalidParameterError as e:
-        return None, str(e), 400
-    except (InternalDockerError, InternalRedisError) as e:
+        application["status"] = "invalid_parameter"
+        application["error"] = str(e)
+        err = str(e)
+        status_code = 400
+    except DockerContainerStartError as e:
+        application["status"] = e.container_status
+        application["error"] = str(e)
+        application["logs"] = e.container_logs
+        err = str(e)
+        status_code = 400
+    except InternalDockerError as e:
         return None, str(e), 500
     finally:
         status = 'success' if status_code == 200 else err
         store_data_for_callback(application, status, status_code)
+
+    try:
+        save_to_redis(application)
+    except InternalRedisError as e:
+        return None, str(e), 500
 
     return application, err, status_code
 
@@ -90,8 +105,10 @@ def delete_application(team_id, force=False):
             logging.info(err)
             return err, 404
 
+        status = application.get('status')
         container_id = application.get('container_id')
-        if not container_id:
+
+        if not container_id and status == 'running':
             err = f'No container information stored for team {team_id}\n'
             logging.error(err)
             return err, 500
@@ -99,7 +116,8 @@ def delete_application(team_id, force=False):
         return str(e), 500
 
     try:
-        delete_container(application.get('container_id'))
+        if status == 'running':
+            delete_container(application.get('container_id'))
     except InternalDockerError as e:
         err = f"Failed to delete container {container_id} for team {team_id}\n" \
               f"Error: {str(e)}\n"
@@ -139,6 +157,7 @@ def delete_all_applications(force=False):
 
     logging.info(f"Successfully deleted {len(deleted)} applications")
     return deleted, None, 200
+
 
 def get_application(team_id):
     try:

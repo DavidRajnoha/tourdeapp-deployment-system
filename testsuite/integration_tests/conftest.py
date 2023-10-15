@@ -30,6 +30,15 @@ def image_name():
 
 
 @pytest.fixture
+def always_fail_image_name():
+    """Returns an image that fails on deployment."""
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return config['images']['always_fail']
+
+
+
+@pytest.fixture
 def platform():
     """Returns the platform to be used for the application deployment."""
     config = configparser.ConfigParser()
