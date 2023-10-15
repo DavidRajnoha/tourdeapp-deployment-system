@@ -1,31 +1,4 @@
 ---
-- name: Create a network for redis
-  docker_network:
-    name: redis-network
-
-- name: Ensure redis directory exists
-  file:
-    path: "{{ redis_data_dir }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0777"
-
-- name: Run Redis
-  docker_container:
-    name: "{{ redis_container_name }}"
-    image: "redis:{{ redis_docker_tag }}"
-    restart_policy: unless-stopped
-    recreate: false
-    volumes:
-      - "{{ redis_data_dir }}:/data"
-    networks:
-      - name: redis-network
-    labels:
-      traefik.enable: "false"
-    stop_signal: SIGQUIT
-
-
 - name: Copy project files to the remote server
   copy:
     src: "{{ source_app_dir }}"
@@ -52,7 +25,7 @@
     restart_policy: always
     recreate: true
     networks:
-      - name: redis-network
+      - name: "{{ redis_network }}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     env:
@@ -91,7 +64,7 @@
       traefik.http.routers.deploy.tls.certresolver: "tlsResolver"
     networks:
       - name: web
-      - name: redis-network
+      - name: "{{ redis_network }}"
     env:
       BASE_DOMAIN: "{{ base_domain }}"
       TRAEFIK_NETWORK: web

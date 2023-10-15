@@ -1,5 +1,2 @@
 ---
-redis_container_name: redis-db
-rq_db_id: "1"
-redis_port: "6379"
 deploy_timeout: "60"
