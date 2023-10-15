@@ -1,0 +1,16 @@
+[requires]
+python_version = "3.11"
+
+[packages]
+docker = "*"
+flask = "*"
+redis = "*"
+rq = "*"
+requests = "*"
+gunicorn = "*"
+
+[dev-packages]
+pytest = "*"
+ansible-runner = "*"
+aiohttp = "*"
+backoff = "*"

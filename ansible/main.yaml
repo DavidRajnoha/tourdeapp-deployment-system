@@ -7,16 +7,31 @@
       deploy_url: "deploy.{{ base_domain }}"
       source_app_dir: ../python_container_deploy_app/
       rq_worker_dockerfile: Dockerfile.worker
+      redis_container_name: redis-db
+      rq_db_id: "1"
+      redis_port: "6379"
       redis_docker_tag: 7.0
+      redis_network: redis-network
   roles:
     - { role: docker, tags: docker }
     - { role: traefik, tags: traefik }
     - { role: monitoring, tags: monitoring}
+    - { role: redis, tags: redis }
     - { role: dynamic_deploy, tags: dynamic_deploy }
 
 - hosts: registry-server
   become: yes
+  vars:
+    source_auth_dir: ../basic_auth/
+    source_ghost_dir: ../ghost_api/
+    redis_network: redis-network
+    redis_container_name: redis-db
+    rq_db_id: "1"
+    redis_port: "6379"
+    redis_docker_tag: 7.0
   roles:
     - { role: docker, tags: docker }
     - { role: traefik, tags: traefik }
     - { role: registry, tags: registry }
+    - {role: redis, tags: redis}
+    - { role: auth, tags: auth }
