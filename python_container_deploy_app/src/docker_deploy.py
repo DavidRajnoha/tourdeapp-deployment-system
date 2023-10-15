@@ -56,17 +56,23 @@ def deploy_container(image_name, subdomain, container_name, registry_credentials
             f"traefik.http.routers.{subdomain}.rule": f"Host(`{routed_domain}`)",
             f"traefik.http.routers.{subdomain}.entrypoints": "web",
         }
+
+        # pulling container image to run the latest version
+        logging.info(f'Attempting to pull image: {image_name}')
+        client.images.pull(image_name)
+
         logging.info(f'Attempting to run container from image: {image_name}')
         container = client.containers.run(image_name,
                                           name=container_name,
                                           detach=True,
                                           labels=labels,
                                           network=network)
-        wait_for_container(container, timeout)
 
+        wait_for_container(container, timeout)
         logging.info('Started container with id: {}'.format(container.short_id))
 
         return container, routed_domain
+
     except docker.errors.ImageNotFound:
         logging.error('Image {} not found.'.format(image_name))
         raise InvalidParameterError('Image {} not found.'.format(image_name))

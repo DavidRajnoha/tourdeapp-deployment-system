@@ -6,6 +6,7 @@ import requests
 
 from typing import Tuple, List, Set
 
+from requests.auth import HTTPBasicAuth
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -15,9 +16,9 @@ from selenium.webdriver.chrome.options import Options
 from getpass import getpass
 
 
-
 container_driver = os.environ.get('SELENIUM_CONTAINER_NAME', None)
 project_id = os.environ.get('PROJECT_ID', None)
+credentials_from_env = (os.environ.get('GHOST_API_USER', None), os.environ.get('GHOST_API_PASSWORD', None))
 
 if container_driver is not None:
     options = Options()
@@ -27,7 +28,8 @@ if container_driver is not None:
 else:
     driver = webdriver.Chrome()
 
-def scrape_new_teams_data(email, password, base_url):
+
+def scrape_new_teams_data(email, password, base_url, credentials=credentials_from_env):
     login(email, password)
 
     existing_team_data: List[Tuple[str, str, str]] = get_teams_from_server(base_url)
@@ -39,7 +41,7 @@ def scrape_new_teams_data(email, password, base_url):
     new_links = links - saved_links
     new_team_data = get_team_data(new_links)
 
-    upload_teams_to_server(base_url, new_team_data)
+    upload_teams_to_server(base_url, new_team_data, credentials)
 
     return new_team_data
 
@@ -83,7 +85,8 @@ def team_ids():
     page = 1
 
     while True:
-        url = f"https://ghost.scg.cz/tournaments/teams?filterData[project_id][0]=project-45&page={page}&sortingBy=id&sortingDirection=desc"
+        url = (f"https://ghost.scg.cz/tournaments/teams?filterData[project_id][0]=project-{project_id}&"
+               f"page={page}&sortingBy=id&sortingDirection=desc")
         driver.get(url)
 
         # Wait for the table to load
@@ -167,8 +170,11 @@ def get_teams_from_server(base_url: str) -> List[Tuple[str, str, str]]:
         print(f"Failed to get teams. Status code: {response.status_code}")
         return []
 
-def upload_teams_to_server(base_url: str, team_data: List[Tuple[str, str, str]]) -> bool:
-    response = requests.post(f"{base_url}/teams", json=team_data)
+
+def upload_teams_to_server(base_url: str, team_data: List[Tuple[str, str, str]], credentials) -> bool:
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+    print(f"logging in with {credentials[0]} and {credentials[1]} as {auth}")
+    response = requests.post(f"{base_url}/teams", json=team_data, auth=auth)
     if response.status_code == 200:
         print("Successfully uploaded teams.")
         return True
@@ -182,11 +188,14 @@ if __name__ == "__main__":
     parser.add_argument("--email", required=True, help="Email for login.")
     parser.add_argument("--base_url", required=True, help="Base URL of the server.")
     parser.add_argument("--project", required=True, help="ID of the project.")
+    parser.add_argument("--ghost_user", required=True, help="Username for the ghost api service")
+    parser.add_argument("--ghost_password", required=True, help="Password for the ghost api service")
 
     args = parser.parse_args()
 
     project_id = args.project
     password = getpass("Enter your password: ")
 
-    new_team_data = scrape_new_teams_data(args.email, password, args.base_url)
+    new_team_data = scrape_new_teams_data(args.email, password, args.base_url,
+                                          credentials=(args.ghost_user, args.ghost_password))
     print(f"Newly scraped team data: {new_team_data}")
