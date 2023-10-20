@@ -81,9 +81,9 @@ jobs:
           ${{ vars.PRODUCTION_REGISTRY_DOMAIN }}
           
           [registry-server:vars]
-          ansible_user=${{ vars.PRODUCTION_REGISTRY_USER }}
+          ansible_user=${{ vars.PRODUCTION_USER }}
           base_domain=${{ vars.PRODUCTION_REGISTRY_DOMAIN }}
-          platform=${{ vars.PRODUCTION_REGISTRY_ARCH }}
+          platform=${{ vars.PRODUCTION_ARCH }}
           
           redis_data_dir=/var/lib/redis
           
@@ -94,7 +94,7 @@ jobs:
           traefik_acme_email="david@rajnoha.eu"
           
           htpasswd_file=/root/registry/auth/htpasswd
-          htpasswd_user=${{ secrets.PRODUCTION_REGISTRY_USER }}
+          htpasswd_user=${{ secrets.PRODUCTION_REGISTRY_HTPASSWD_USER }}
           htpasswd_password=${{ secrets.PRODUCTION_REGISTRY_PASSWORD }}
           
           ghost_auth_user=deploy
