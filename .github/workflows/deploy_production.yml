@@ -28,7 +28,7 @@ jobs:
         # Custom content to write into hosts
         inventory: |
           [deploy-server]
-          ${{ vars.PRODUCTION_DEPLOY_DOMAIN }}
+          ${{ vars.PRODUCTION_DOMAIN }}
           
           [deploy-server:vars]
           ansible_user=${{ vars.PRODUCTION_USER }}
@@ -78,7 +78,7 @@ jobs:
         # Custom content to write into hosts
         inventory: |
           [registry-server]
-          ${{ vars.PRODUCTION_REGISTRY_DEPLOY_DOMAIN }}
+          ${{ vars.PRODUCTION_REGISTRY_DOMAIN }}
           
           [registry-server:vars]
           ansible_user=${{ vars.PRODUCTION_REGISTRY_USER }}
