@@ -124,9 +124,10 @@ def delete_container(container_id):
         logging.info(msg)
         return True, msg
     except docker.errors.NotFound:
-        err = f'Container {container_id} not found.'
-        logging.error(err)
-        raise InternalDockerError(err)
+        msg = f'Container {container_id} already does not exist'
+        logging.info(msg)
+        return True, msg
     except docker.errors.APIError as e:
         err = f'API error for container {container_id}: {str(e)}'
+        logging.error(err)
         raise InternalDockerError(err)
