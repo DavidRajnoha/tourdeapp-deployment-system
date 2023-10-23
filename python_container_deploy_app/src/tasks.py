@@ -35,13 +35,14 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
         logging.debug(f"Registry credentials: {registry_credentials}")
 
         container_info = deploy_container(image_name, subdomain, container_name=f"team-{team_id}",
-                                            registry_credentials=registry_credentials, network=traefik_network,
-                                            traefik_domain=traefik_domain, timeout=deploy_timeout)
+                                          registry_credentials=registry_credentials, network=traefik_network,
+                                          traefik_domain=traefik_domain, timeout=deploy_timeout)
         application["status"] = container_info[0]
         application["container_id"] = container_info[1]
         application["container_name"] = container_info[2]
         application["route"] = container_info[3]
         application["logs"] = container_info[4]
+        application["started_at"] = container_info[5]
 
     except InvalidParameterError as e:
         application["status"] = "invalid_parameter"
@@ -54,12 +55,13 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
         application["logs"] = e.container_logs
         err = str(e)
         status_code = 400
-    except InternalDockerError as e:
-        return None, str(e), 500
+    except InternalDockerError:
+        application["status"] = "internal_error"
+        status_code = 500
+        err = None
     finally:
         status = 'success' if status_code == 200 else err
         store_data_for_callback(application, status, status_code)
-
     try:
         save_to_redis(application)
     except InternalRedisError as e:

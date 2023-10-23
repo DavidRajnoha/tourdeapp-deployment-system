@@ -79,7 +79,7 @@ def deploy_container(image_name, subdomain, container_name, registry_credentials
         logging.info('Started container with id: {}'.format(container.short_id))
 
         return (container.status, container.id, container.name,
-                routed_domain, container.logs().decode('utf-8'))
+                routed_domain, container.logs().decode('utf-8'), int(time.time()))
 
     except docker.errors.ImageNotFound:
         logging.error('Image {} not found.'.format(image_name))
@@ -124,9 +124,10 @@ def delete_container(container_id):
         logging.info(msg)
         return True, msg
     except docker.errors.NotFound:
-        err = f'Container {container_id} not found.'
-        logging.error(err)
-        raise InternalDockerError(err)
+        msg = f'Container {container_id} already does not exist'
+        logging.info(msg)
+        return True, msg
     except docker.errors.APIError as e:
         err = f'API error for container {container_id}: {str(e)}'
+        logging.error(err)
         raise InternalDockerError(err)

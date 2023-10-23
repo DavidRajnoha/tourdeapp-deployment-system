@@ -156,7 +156,8 @@ def backoff_function(domain_name, credentials):
             if response.status_code == 200 and response_api.status_code == 200:
                 return True
             else:
-                print(f'Application is not running. Response: {response.text}')
+                print(f'Application is not running.\n Response: {response.text}\n'
+                      f'Response API: {response_api.text}\n')
                 return False
         wait()
     return _wait_for_application_to_initialize
@@ -171,7 +172,7 @@ def deploy_application_function(domain_name, image_name, credentials, cleanup_fu
     The function sends a POST request to deploy an application and waits for it to initialize.
     It also registers a cleanup function to remove the application after the test.
     """
-    def _deploy_application(team_id, custom_image_name=image_name, cleanup=True, backoff_max_tries=5, backoff_interval=10,
+    def _deploy_application(team_id, custom_image_name=image_name, cleanup=True, backoff_max_tries=10, backoff_interval=10,
                             registry_credentials=None):
         url = f'https://deploy.{domain_name}/application/{team_id}'
         headers = {'Content-Type': 'application/json'}
