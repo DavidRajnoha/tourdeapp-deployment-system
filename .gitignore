@@ -2,6 +2,7 @@
 diff.txt
 ansible/hosts.ini
 ansible/hosts_registry.ini
+ansible/hosts*
 .idea/
 python_container_deploy_app/testsuite/config.ini
 *.pytest_cache/

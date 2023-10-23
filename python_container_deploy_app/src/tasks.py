@@ -42,6 +42,7 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
         application["container_name"] = container_info[2]
         application["route"] = container_info[3]
         application["logs"] = container_info[4]
+        application["started_at"] = container_info[5]
 
     except InvalidParameterError as e:
         application["status"] = "invalid_parameter"

@@ -1,3 +1,5 @@
+import time
+
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -41,7 +43,10 @@ def test_get_application_success(domain_name, credentials, deploy_random_applica
     assert 'route' in data
     assert 'subdomain' in data
     assert 'image_name' in data
+    assert 'started_at' in data
     assert data['status'] == 'running'
+    # assert started at is an unix timestamp not older then 1 minute
+    assert int(data['started_at']) > int(time.time()) - 60
 
 
 def test_get_application_not_found(domain_name, credentials):
@@ -119,3 +124,4 @@ def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_
         assert 'route' in app
         assert 'subdomain' in app
         assert 'image_name' in app
+        assert 'started_at' in app
