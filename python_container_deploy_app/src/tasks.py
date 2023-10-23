@@ -1,8 +1,10 @@
 import logging
 import os
+import time
 
 from src.docker_deploy import deploy_container, delete_container,\
-    InternalDockerError, InvalidParameterError, DockerContainerStartError
+    InternalDockerError, InvalidParameterError, DockerContainerStartError, \
+    start_container
 
 from src.persistance import save_to_redis, delete_from_redis, \
     is_subdomain_used, get_all_team_ids, InternalRedisError, flush_redis
@@ -159,6 +161,43 @@ def delete_all_applications(force=False):
 
     logging.info(f"Successfully deleted {len(deleted)} applications")
     return deleted, None, 200
+
+
+def resume_stopped_containers():
+    try:
+        applications = get_applications_from_redis()
+    except InternalRedisError as e:
+        return str(e), 500
+    for application in applications:
+        team_id = application.get('team_id')
+        container_id = application.get('container_id')
+        status = application.get('status')
+        if not container_id and status == 'running':
+            logging.info(f"Container for team {team_id} was not running, skipping...")
+            continue
+
+        try:
+            started_at, _ = start_container(container_id)
+            logging.info(f"Successfully started container {container_id} for team {team_id}")
+            application["status"] = "running"
+            if started_at:
+                application["started_at"] = started_at
+        except InvalidParameterError as e:
+            err = f"Failed to start container {container_id} for team {team_id}\n" \
+                  f"Error: {str(e)}\n"
+            logging.error(err)
+            application["status"] = "internal_error"
+        except InternalDockerError as e:
+            err = f"Failed to start container {container_id} for team {team_id}\n" \
+                  f"Error: {str(e)}\n"
+            logging.error(err)
+            application["status"] = "internal_error"
+
+        try:
+            save_to_redis(application)
+        except InternalRedisError as e:
+            logging.error(f"Failed to save application {application} to redis")
+            return None, str(e), 500
 
 
 def get_application(team_id):

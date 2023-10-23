@@ -89,6 +89,25 @@ def deploy_container(image_name, subdomain, container_name, registry_credentials
         raise InternalDockerError('API error: {}'.format(str(e)))
 
 
+def start_container(container_id):
+    try:
+        container = client.containers.get(container_id)
+        if container.status == 'running':
+            logging.info(f'Container {container_id} is already running')
+            return None, f'Container {container_id} is already running'
+        container.start()
+        logging.info(f'Started container {container_id}')
+        return int(time.time()), f'Started container {container_id}'
+    except docker.errors.NotFound:
+        err = f'Container {container_id} not found'
+        logging.error(err)
+        raise InvalidParameterError(err)
+    except docker.errors.APIError as e:
+        err = f'API error for container {container_id}: {str(e)}'
+        logging.error(err)
+        raise InternalDockerError(err)
+
+
 def wait_for_container(container, timeout):
     start_time = time.time()
     running = False

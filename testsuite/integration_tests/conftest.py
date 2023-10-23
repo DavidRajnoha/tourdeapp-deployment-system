@@ -14,6 +14,14 @@ import string
 
 
 @pytest.fixture
+def cleanup():
+    """Returns the configuration whether to cleanup after the test."""
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return config['cleanup']['cleanup'] in ['true', 'True']
+
+
+@pytest.fixture
 def domain_name():
     """Returns the domain name for the application deployment."""
     config = configparser.ConfigParser()
@@ -107,12 +115,16 @@ def credentials():
 
 
 @pytest.fixture
-def cleanup_function(domain_name, credentials):
+def cleanup_function(domain_name, credentials, cleanup):
     """Returns a function that cleans up a deployed application.
     The function sends a DELETE request to remove the application from the deployment environment.
     """
     def _cleanup(url, team_id):
         def __cleanup():
+            if not cleanup:
+                print('Skipping cleanup')
+                return
+
             headers = {'Content-Type': 'application/json'}
             auth = HTTPBasicAuth(credentials[0], credentials[1])
             delete_response = requests.delete(url, headers=headers, auth=auth)

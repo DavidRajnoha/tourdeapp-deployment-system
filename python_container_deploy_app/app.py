@@ -5,6 +5,7 @@ from src.tasks import delete_all_applications as delete_all_applications_task
 from src.tasks import get_application as get_application_task
 from src.tasks import get_applications as get_applications_task
 from src.tasks import reset_redis as reset_redis_task
+from src.tasks import resume_stopped_containers as resume_stopped_containers_task
 
 
 from src.async_rq import queue
@@ -55,6 +56,22 @@ def deploy_application(team_id):
         job.save_meta()
 
     return jsonify({"message": "Deployment started", "job_id": job.get_id()}), 202
+
+
+@app.route('/application', methods=['PUT'])
+def restart_all_application():
+    callback_url = request.args.get('callback-url', None)
+
+    # Enqueue the function call
+    job = queue.enqueue_call(func=resume_stopped_containers_task)
+
+    # Enqueue the callback
+    if callback_url is not None:
+        job.callback = 'notify_callback_url'
+        job.meta['callback_url'] = callback_url
+        job.save_meta()
+
+    return jsonify({"message": "Restart of all aplications started", "job_id": job.get_id()}), 202
 
 
 @app.route('/application', methods=['GET'])

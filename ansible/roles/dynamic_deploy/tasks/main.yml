@@ -72,3 +72,20 @@
       REDIS_HOST: "{{ redis_container_name }}"
       REDIS_PORT: "{{ redis_port }}"
       DEBUG_MODE: "{{ debug_mode }}"
+
+- name: Wait for the application to start
+  wait_for:
+    host: "{{ deploy_url }}"
+    port: 443
+    delay: 5
+    timeout: 60
+    state: started
+
+- name: Make PUT request to restart applications stopped by Docker redeploy
+  uri:
+    url: "https://deploy.{{ base_domain }}/application"
+    method: PUT
+    user: "{{ dynamic_deploy_user }}"
+    password: "{{ dynamic_deploy_password }}"
+    force_basic_auth: yes
+    status_code: 202
