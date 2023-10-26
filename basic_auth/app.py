@@ -36,7 +36,7 @@ def staging_auth():
 
     # This code was copied, consider merging the basic_auth and ghost api
     # but it is necessary to figure traefik middleware auth
-    if not all(isinstance(item, list) and len(item) == 3 and
+    if not all(isinstance(item, list) and len(item) == 4 and
                all(isinstance(sub_item, str) for sub_item in item)
                for item in team_data):
         return jsonify({"message": "Received data in invalid format"}), 500
