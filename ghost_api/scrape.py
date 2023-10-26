@@ -32,7 +32,7 @@ else:
 def scrape_new_teams_data(email, password, base_url, credentials=credentials_from_env):
     login(email, password)
 
-    existing_team_data: List[Tuple[str, str, str]] = get_teams_from_server(base_url)
+    existing_team_data: List[Tuple[str, str, str, str]] = get_teams_from_server(base_url)
 
     saved_links = links_from_team_data(existing_team_data)
     links = set(team_ids())
@@ -137,32 +137,35 @@ def get_team_data(id_links):
         table_text = table.text
 
         # Extract the ID and Hash from the text
-        team_id, team_hash = extract_id_and_hash(table_text)
-        team_data.append((link, team_id, team_hash))
+        team_id, team_hash, team_name = extract_id_and_hash(table_text)
+        team_data.append((link, team_id, team_hash, team_name))
 
     return team_data
 
 
-def extract_id_and_hash(text):
+def extract_id_and_hash(text) -> Tuple[str, str, str]:
     lines = text.split('\n')
     id_value = None
     hash_value = None
+    team_name = None
 
     for line in lines:
         if line.startswith('ID:'):
             id_value = line.split('ID:')[1].strip()
         elif line.startswith('Hash:'):
             hash_value = line.split('Hash:')[1].strip()
+        elif line.startswith('Název:'):
+            team_name = line.split('Název:')[1].strip()
 
-    return id_value, hash_value
+    return id_value, hash_value, team_name
 
 
-def links_from_team_data(team_data) -> Set[str]:
+def links_from_team_data(team_data: List[Tuple[str, str, str, str]]) -> Set[str]:
     # get ids from a list of team data
-    return {link for link, _, _ in team_data}
+    return {individual_team_data[0] for individual_team_data in team_data}
 
 
-def get_teams_from_server(base_url: str) -> List[Tuple[str, str, str]]:
+def get_teams_from_server(base_url: str) -> List[Tuple[str, str, str, str]]:
     response = requests.get(f"{base_url}/teams")
     if response.status_code == 200:
         return response.json()
@@ -171,10 +174,11 @@ def get_teams_from_server(base_url: str) -> List[Tuple[str, str, str]]:
         return []
 
 
-def upload_teams_to_server(base_url: str, team_data: List[Tuple[str, str, str]], credentials) -> bool:
+def upload_teams_to_server(base_url: str, team_data: List[Tuple[str, str, str, str]], credentials) -> bool:
     auth = HTTPBasicAuth(credentials[0], credentials[1])
     print(f"logging in with {credentials[0]} and {credentials[1]} as {auth}")
-    response = requests.post(f"{base_url}/teams", json=team_data, auth=auth)
+    response = requests.post(f"{base_url}/teams", json=team_data, auth=auth,
+                             headers={"Content-Type": "application/json; charset=utf-8"})
     if response.status_code == 200:
         print("Successfully uploaded teams.")
         return True

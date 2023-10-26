@@ -8,20 +8,21 @@ redis_port = int(os.getenv('REDIS_PORT', 6379))
 redis_db = redis.Redis(host=redis_host, port=redis_port, db=0, charset="utf-8", decode_responses=True)
 
 
-def get_team_data_from_db() -> List[Tuple[str, str, str]]:
+def get_team_data_from_db() -> List[Tuple[str, str, str, str]]:
     # get the team data from database
     team_data = []
     for team_id in redis_db.keys():
         url = redis_db.hget(team_id, 'url')
         hash_value = redis_db.hget(team_id, 'hash')
-        team_data.append((url, team_id, hash_value))
+        team_name = redis_db.hget(team_id, 'team_name')
+        team_data.append((url, team_id, hash_value, team_name))
     return team_data
 
 
-def persist_team_data(team_data: List[Tuple[str, str, str]]):
+def persist_team_data(team_data: List[Tuple[str, str, str, str]]):
     # save the team data to database
-    for url, team_id, hash_value in team_data:
-        redis_db.hset(team_id, mapping={'url': url, 'hash': hash_value})
+    for url, team_id, hash_value, team_name in team_data:
+        redis_db.hset(team_id, mapping={'url': url, 'hash': hash_value, 'team_name': team_name})
 
 
 def delete_all_data_from_db():
