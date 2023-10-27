@@ -4,7 +4,7 @@ import time
 
 from src.docker_deploy import deploy_container, delete_container,\
     InternalDockerError, InvalidParameterError, DockerContainerStartError, \
-    start_container
+    start_container, UnauthorizedError
 
 from src.persistance import save_to_redis, delete_from_redis, \
     is_subdomain_used, get_all_team_ids, InternalRedisError, flush_redis
@@ -61,9 +61,14 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
         application["status"] = "internal_error"
         status_code = 500
         err = None
+    except UnauthorizedError:
+        application["status"] = "invalid_registry_credentials"
+        status_code = 401
+        err = None
     finally:
         status = 'success' if status_code == 200 else err
         store_data_for_callback(application, status, status_code)
+
     try:
         save_to_redis(application)
     except InternalRedisError as e:
@@ -76,29 +81,39 @@ def check_deploy_conditions(team_id, subdomain, redeploy=True):
     application = get_application_from_redis(team_id)
     subdomain_used = is_subdomain_used(subdomain)
 
-    if application and not redeploy:
-        err = f'Application already exists for team {team_id}\n'
-        logging.info(err)
-        raise InvalidParameterError(err)
-    elif application and redeploy:
+    if not application and not subdomain_used:
+        logging.info(f"No application found for team {team_id}. Deploying...")
+        return
+
+    if application and redeploy:
         logging.info(f"Application already exists for team {team_id}. Redeploying...")
         container_id = application.get('container_id')
+        if container_id is None:
+            logging.info("No container exits, proceeding with deployment")
+            return
         try:
             delete_container(container_id)
+            logging.info(f"Successfully deleted container {container_id} for team {team_id},"
+                         f" proceeding with deployment")
+            return
         except InternalDockerError as e:
             err = f"Failed to delete container {container_id} for team {team_id}\n"
             logging.error(err)
             raise InternalError(err)
-    elif subdomain_used:
+
+    if application and not redeploy:
+        err = f'Application already exists for team {team_id}\n'
+        logging.info(err)
+        raise InvalidParameterError(err)
+
+    if subdomain_used:
         err = f'Subdomain {subdomain} is already in use\n'
         logging.error(err)
         raise InvalidParameterError(err)
-    elif not application and not subdomain_used:
-        logging.info(f"No application found for team {team_id}. Deploying...")
-    else:
-        err = "Unhandled situation while checking for application existence\n"
-        logging.error(err)
-        raise InternalError(err)
+
+    err = "Unhandled situation while checking for application existence\n"
+    logging.error(err)
+    raise InternalError(err)
 
 
 def delete_application(team_id, force=False):

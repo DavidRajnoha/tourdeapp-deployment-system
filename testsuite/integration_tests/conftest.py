@@ -165,12 +165,18 @@ def backoff_function(domain_name, credentials):
             auth = HTTPBasicAuth(credentials[0], credentials[1])
             response_api = requests.get(url, auth=auth)
 
-            if response.status_code == 200 and response_api.status_code == 200:
-                return True
-            else:
-                print(f'Application is not running.\n Response: {response.text}\n'
-                      f'Response API: {response_api.text}\n')
+            if response.status_code != 200:
+                print(f'Application is not running.\n Response: {response.text}')
                 return False
+            if response_api.status_code != 200:
+                print(f'Response API: {response_api.text}\n')
+                return False
+
+            status = response_api.json()['status']
+            if status != 'running':
+                print(f'Application is not running.\n Response: {response_api.text}')
+                return False
+
         wait()
     return _wait_for_application_to_initialize
 
@@ -255,14 +261,17 @@ def deploy_random_application(blame, deploy_application_function):
 
 @pytest.fixture
 def deploy_custom_image(blame, deploy_application_function, registry_credentials):
-    def _deploy_custom_image(image_name):
+    def _deploy_custom_image(image_name, custom_registry_credentials=None):
+        if custom_registry_credentials is None:
+            custom_registry_credentials = registry_credentials
+
         blame_string = blame()
 
         # Generate a random team_id and incorporate the "blame" string
         team_id = f"{random.randint(100, 200)}-{blame_string}"
 
         return deploy_application_function(team_id, custom_image_name=image_name,
-                                           registry_credentials=registry_credentials)
+                                           registry_credentials=custom_registry_credentials)
     return _deploy_custom_image
 
 
