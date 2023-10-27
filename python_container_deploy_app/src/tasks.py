@@ -4,7 +4,7 @@ import time
 
 from src.docker_deploy import deploy_container, delete_container,\
     InternalDockerError, InvalidParameterError, DockerContainerStartError, \
-    start_container
+    start_container, UnauthorizedError
 
 from src.persistance import save_to_redis, delete_from_redis, \
     is_subdomain_used, get_all_team_ids, InternalRedisError, flush_redis
@@ -61,9 +61,14 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
         application["status"] = "internal_error"
         status_code = 500
         err = None
+    except UnauthorizedError:
+        application["status"] = "invalid_registry_credentials"
+        status_code = 401
+        err = None
     finally:
         status = 'success' if status_code == 200 else err
         store_data_for_callback(application, status, status_code)
+
     try:
         save_to_redis(application)
     except InternalRedisError as e:
