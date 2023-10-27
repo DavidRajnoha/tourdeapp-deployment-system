@@ -158,3 +158,7 @@ def delete_container(container_id):
         err = f'API error for container {container_id}: {str(e)}'
         logging.error(err)
         raise InternalDockerError(err)
+    except docker.errors.NullResource as e:
+        err = f'Null resource for container {container_id}: {str(e)}'
+        logging.error(err)
+        raise InternalDockerError(err)

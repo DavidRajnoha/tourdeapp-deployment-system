@@ -165,12 +165,18 @@ def backoff_function(domain_name, credentials):
             auth = HTTPBasicAuth(credentials[0], credentials[1])
             response_api = requests.get(url, auth=auth)
 
-            if response.status_code == 200 and response_api.status_code == 200:
-                return True
-            else:
-                print(f'Application is not running.\n Response: {response.text}\n'
-                      f'Response API: {response_api.text}\n')
+            if response.status_code != 200:
+                print(f'Application is not running.\n Response: {response.text}')
                 return False
+            if response_api.status_code != 200:
+                print(f'Response API: {response_api.text}\n')
+                return False
+
+            status = response_api.json()['status']
+            if status != 'running':
+                print(f'Application is not running.\n Response: {response_api.text}')
+                return False
+
         wait()
     return _wait_for_application_to_initialize
 

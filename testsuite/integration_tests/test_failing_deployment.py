@@ -63,3 +63,22 @@ def test_unauthorized_registry_fails(domain_name, credentials, unauthorized_regi
     data = response.json()
     assert 'status' in data
     assert data['status'] == 'invalid_registry_credentials'
+
+
+def test_successful_redeploy_on_missing_container_id(domain_name, credentials, unauthorized_registry_application,
+                                                     deploy_application_function, custom_registry_image,
+                                                     registry_credentials):
+    _, subdomain, team_id = unauthorized_registry_application
+
+    redeployed_app = deploy_application_function(team_id, custom_image_name=custom_registry_image,
+                                                 registry_credentials=registry_credentials)
+
+    _, subdomain, team_id = redeployed_app
+    url = f'https://deploy.{domain_name}/application/{team_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+    response = requests.get(url, auth=auth)
+    assert response.status_code == 200
+    data = response.json()
+    assert 'status' in data
+    assert data['status'] == 'running'
