@@ -28,7 +28,7 @@ jobs:
         # Custom content to write into hosts
         inventory: |
           [deploy-server]
-          ${{ vars.PRODUCTION_DOMAIN }}
+          ${{ vars.PRODUCTION_IP }}
           
           [deploy-server:vars]
           ansible_user=${{ vars.PRODUCTION_USER }}
@@ -78,7 +78,7 @@ jobs:
         # Custom content to write into hosts
         inventory: |
           [registry-server]
-          ${{ vars.PRODUCTION_REGISTRY_DOMAIN }}
+          ${{ vars.PRODUCTION_REGISTRY_IP }}
           
           [registry-server:vars]
           ansible_user=${{ vars.PRODUCTION_USER }}
@@ -91,7 +91,7 @@ jobs:
           traefik_api_url="traefik.{{ base_domain }}"
           traefik_api_user=traefik
           traefik_api_password=${{ secrets.PRODUCTION_TRAEFIK_PASSWORD }}
-          traefik_acme_email="david@rajnoha.eu"
+          traefik_acme_email="info@tourdeapp.cz"
           
           htpasswd_file=/root/registry/auth/htpasswd
           htpasswd_user=${{ secrets.PRODUCTION_REGISTRY_HTPASSWD_USER }}
