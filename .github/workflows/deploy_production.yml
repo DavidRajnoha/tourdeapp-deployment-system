@@ -28,7 +28,7 @@ jobs:
         # Custom content to write into hosts
         inventory: |
           [deploy-server]
-          ${{ vars.PRODUCTION_IP }}
+          ${{ secrets.PRODUCTION_IP }}
           
           [deploy-server:vars]
           ansible_user=${{ vars.PRODUCTION_USER }}
@@ -78,7 +78,7 @@ jobs:
         # Custom content to write into hosts
         inventory: |
           [registry-server]
-          ${{ vars.PRODUCTION_REGISTRY_IP }}
+          ${{ secrets.PRODUCTION_REGISTRY_IP }}
           
           [registry-server:vars]
           ansible_user=${{ vars.PRODUCTION_USER }}
