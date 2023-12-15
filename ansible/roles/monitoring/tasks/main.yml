@@ -23,6 +23,10 @@
       - "/var/lib/docker/:/var/lib/docker:ro"
     devices:
       - "/dev/kmsg:/dev/kmsg"
+    command:
+      - "--housekeeping_interval=30s"
+      - "--docker_only=true"
+      - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
 
 - file:
     path: "{{ prometheus_dir }}"

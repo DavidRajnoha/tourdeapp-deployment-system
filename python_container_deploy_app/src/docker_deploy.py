@@ -100,6 +100,9 @@ def deploy_container(image_name, subdomain, container_name, registry_credentials
 
 def start_container(container_id):
     try:
+        if container_id is None:
+            logging.error('Container ID cannot be None')
+            raise InvalidParameterError('Container ID cannot be None')
         container = client.containers.get(container_id)
         if container.status == 'running':
             logging.info(f'Container {container_id} is already running')
