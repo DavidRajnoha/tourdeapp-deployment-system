@@ -33,6 +33,7 @@ def test_get_failing_application_data(domain_name, credentials, failing_applicat
     assert 'subdomain' in data
     assert 'image_name' in data
     assert 'logs' in data
+    assert 'container_id' in data
 
 
 def test_delete_failing_application_success(domain_name, credentials, failing_application):

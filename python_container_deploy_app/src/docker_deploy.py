@@ -7,8 +7,9 @@ client = docker.from_env()
 
 
 class DockerContainerStartError(Exception):
-    def __init__(self, message, container_logs, container_status):
+    def __init__(self, message, container_logs, container_status, container_id):
         super().__init__(message)
+        self.container_id = container_id
         self.container_status = container_status
         self.container_logs = container_logs
 
@@ -134,12 +135,13 @@ def wait_for_container(container, timeout):
 
             container_logs = container.logs().decode('utf-8')
             container_status = container.status
+            container_id = container.id
             logging.info(container_logs)
             container.stop()
             container.remove()
             logging.info(f'Stopped and removed container {container.id}')
 
-            raise DockerContainerStartError(err, container_logs, container_status)
+            raise DockerContainerStartError(err, container_logs, container_status, container_id)
 
 
 def delete_container(container_id):

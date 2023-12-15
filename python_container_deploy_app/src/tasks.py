@@ -52,6 +52,7 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
         err = str(e)
         status_code = 400
     except DockerContainerStartError as e:
+        application["container_id"] = e.container_id
         application["status"] = e.container_status
         application["error"] = str(e)
         application["logs"] = e.container_logs
