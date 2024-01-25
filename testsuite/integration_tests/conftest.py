@@ -225,6 +225,29 @@ def deploy_application_function(domain_name, image_name, credentials, cleanup_fu
 
 
 @pytest.fixture
+def reset_redis(domain_name, credentials):
+    """
+    Returns a function that resets the Redis database.
+    The function sends a GET request to reset the Redis database.
+    """
+    def _reset_redis():
+        url = f'https://deploy.{domain_name}/reset-redis'
+        auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+        response = requests.get(url, auth=auth)
+
+        if response.status_code == 200:
+            print('Successfully reset the Redis database')
+        else:
+            print(f'Failed to reset the Redis database, status code: {response.status_code}')
+            print('Response:', response.text)
+
+    return _reset_redis
+
+
+
+
+@pytest.fixture
 def blame():
     """
     Returns a string containing information about the entity running the test.
@@ -261,14 +284,14 @@ def deploy_random_application(blame, deploy_application_function):
 
 @pytest.fixture
 def deploy_custom_image(blame, deploy_application_function, registry_credentials):
-    def _deploy_custom_image(image_name, custom_registry_credentials=None):
+    def _deploy_custom_image(image_name, custom_registry_credentials=None, fixed_id=None):
         if custom_registry_credentials is None:
             custom_registry_credentials = registry_credentials
 
         blame_string = blame()
 
         # Generate a random team_id and incorporate the "blame" string
-        team_id = f"{random.randint(100, 200)}-{blame_string}"
+        team_id = fixed_id or f"{random.randint(100, 200)}-{blame_string}"
 
         return deploy_application_function(team_id, custom_image_name=image_name,
                                            registry_credentials=custom_registry_credentials)

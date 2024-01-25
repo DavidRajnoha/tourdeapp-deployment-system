@@ -13,6 +13,34 @@ def unauthorized_registry_application(deploy_custom_image, custom_registry_image
     return deploy_custom_image(custom_registry_image, custom_registry_credentials="invalid:credentials")
 
 
+def test_deploy_application_with_fixed_name(domain_name, credentials, deploy_custom_image,
+                                            custom_registry_image, registry_credentials, reset_redis, blame):
+    """
+    When the container with the same name exists and is not recorded in redis, the deploy request should still pass.
+    """
+    fixed_id = blame()
+
+    deploy_custom_image(custom_registry_image, custom_registry_credentials=registry_credentials,
+                               fixed_id=fixed_id)
+    url = f'https://deploy.{domain_name}/application/{fixed_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+    response = requests.get(url, auth=auth)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['status'] == 'running'
+
+    reset_redis()
+
+    deploy_custom_image(custom_registry_image, custom_registry_credentials=registry_credentials,
+                               fixed_id=fixed_id)
+    url = f'https://deploy.{domain_name}/application/{fixed_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+    response = requests.get(url, auth=auth)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['status'] == 'running'
+
+
 def test_get_failing_application_data(domain_name, credentials, failing_application):
     """
     Tests the successful retrieval of a deployed application's details.

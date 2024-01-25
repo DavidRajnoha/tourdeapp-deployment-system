@@ -152,13 +152,13 @@ def delete_container(container_id):
         container = client.containers.get(container_id)
         container.stop()
         container.remove()
-        msg = f'Stopped and removed container for {container_id}\n'
+        msg = f'Stopped and removed container {container_id}\n'
         logging.info(msg)
-        return True, msg
+        return True
     except docker.errors.NotFound:
         msg = f'Container {container_id} already does not exist'
         logging.info(msg)
-        return True, msg
+        return False
     except docker.errors.APIError as e:
         err = f'API error for container {container_id}: {str(e)}'
         logging.error(err)
