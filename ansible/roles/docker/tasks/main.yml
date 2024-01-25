@@ -31,3 +31,11 @@
     name: docker
     state: restarted
     enabled: true
+
+- name: Schedule Docker cleanup
+  ansible.builtin.cron:
+    name: "Daily Docker Cleanup"
+    job: "docker system prune -af --volumes"
+    hour: 04
+    minute: 00
+    user: root  # Ensure this runs as root
