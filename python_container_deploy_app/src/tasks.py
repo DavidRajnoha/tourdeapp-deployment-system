@@ -29,9 +29,10 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
         "image_name": image_name
     }
 
+    container_name = f"team-{team_id}"
     err, status_code = "Failed to assign error cause for this case", 500
     try:
-        check_deploy_conditions(team_id, subdomain, redeploy)
+        check_deploy_conditions(team_id, subdomain, container_name, redeploy)
 
         logging.debug(f"Deploying application for team {team_id} with subdomain {subdomain} and image {image_name}")
         logging.debug(f"Registry credentials: {registry_credentials}")
@@ -78,22 +79,39 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
     return application, err, status_code
 
 
-def check_deploy_conditions(team_id, subdomain, redeploy=True):
+def check_deploy_conditions(team_id, subdomain, container_name, redeploy=True):
     application = get_application_from_redis(team_id)
     subdomain_used = is_subdomain_used(subdomain)
 
     if not application and not subdomain_used:
         logging.info(f"No application found for team {team_id}. Deploying...")
+        try:
+            found_by_name = delete_container(container_name)
+            if not found_by_name:
+                # Everything ok, no container found
+                return
+            logging.info(f"Successfully deleted container {container_name} for team {team_id}. "
+                         f"System was repaired from an inconsistent state")
+        except InternalDockerError as e:
+            logging.error(f"Failed to delete container {container_name} for team {team_id}\n"
+                          f"There is no record for such application in the database, "
+                          f"but the container exists. Please investigate")
         return
 
     if application and redeploy:
         logging.info(f"Application already exists for team {team_id}. Redeploying...")
         container_id = application.get('container_id')
-        if container_id is None:
-            logging.info("No container exits, proceeding with deployment")
-            return
+        found_by_id = False
+        found_by_name = False
         try:
-            delete_container(container_id)
+            if container_id is not None:
+                found_by_id = delete_container(container_id)
+            if not found_by_id:
+                found_by_name = delete_container(container_name)
+            if not found_by_name and not found_by_id:
+                logging.info("No container exits, proceeding with deployment")
+                return
+
             logging.info(f"Successfully deleted container {container_id} for team {team_id},"
                          f" proceeding with deployment")
             return
