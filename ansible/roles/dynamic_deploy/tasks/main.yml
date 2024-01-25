@@ -17,9 +17,9 @@
     state: present
     force_source: yes
 
-- name: Run RQ worker
+- name: Run multiple RQ workers
   docker_container:
-    name: dynamic_deploy_rq_worker_container
+    name: "dynamic_deploy_rq_worker_container_{{ item }}"
     image: dynamic_deploy_rq_worker
     state: started
     restart_policy: always
@@ -37,6 +37,7 @@
       DEPLOY_TIMEOUT: "{{ deploy_timeout }}"
     labels:
       traefik.enable: "false"
+  loop: "{{ range(1, dynamic_deploy_number_of_rq_workers + 1)|list }}"
 
 - name: Build Docker image for Flask app
   community.general.docker_image:
