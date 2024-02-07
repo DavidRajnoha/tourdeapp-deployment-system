@@ -9,6 +9,7 @@
     networks:
       - name: web
     labels:
+      system: "true"
       traefik.docker.network: "web"
       traefik.enable: "true"
       traefik.http.routers.cadvisor.rule: "Host(`cadvisor.{{ base_domain }}`)"
@@ -56,19 +57,63 @@
     networks:
       - name: web
     labels:
+      system: "true"
       traefik.docker.network: "web"
       traefik.enable: "true"
       traefik.http.routers.prometheus.rule: "Host(`prometheus.{{ base_domain }}`)"
       traefik.http.routers.prometheus.entrypoints: "websecure"
       traefik.http.routers.prometheus.tls.certresolver: "tlsResolver"
-
 # Grafana
 
-- file:
-    path: "{{ grafana_dir }}"
+- name: Setup Grafana provisioning directories
+  file:
+    path: "{{ grafana_dir }}/provisioning/{{ item }}"
     state: directory
     owner: root
     group: root
+    mode: '0755'
+  loop:
+    - datasources
+    - dashboards
+  become: true
+
+
+- name: Copy Prometheus datasource provisioning file
+  copy:
+    src: grafana-prometheus-datasource.yml
+    dest: "{{ grafana_dir }}/provisioning/datasources/prometheus-datasource.yml"
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+
+- name: Setup Grafana dashboard provisioning config
+  copy:
+    content: |
+      apiVersion: 1
+      providers:
+      - name: 'Default'
+        orgId: 1
+        folder: ''
+        type: file
+        options:
+          path: /etc/grafana/provisioning/dashboards
+    dest: "{{ grafana_dir }}/provisioning/dashboards/dashboards.yml"
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: Copy dashboard JSON to Grafana provisioning directory
+  copy:
+    src: tda-dashboard.json
+    dest: "{{ grafana_dir }}/provisioning/dashboards/tda-dashboard.json"
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
 
 - name: Create Docker volume for Grafana
   docker_volume:
@@ -84,12 +129,14 @@
       - "3000:3000"
     volumes:
       - "grafana_data:/var/lib/grafana"
+      - "{{ grafana_dir }}/provisioning:/etc/grafana/provisioning"  # Mount shared provisioning directory
     networks:
       - name: web
     env:
       GF_SECURITY_ADMIN_USER: "{{ grafana_admin_user }}"
       GF_SECURITY_ADMIN_PASSWORD: "{{  grafana_admin_password }}"
     labels:
+      system: "true"
       traefik.enable: "true"
       traefik.docker.network: "web"
       traefik.http.routers.grafana.rule: "Host(`grafana.{{ base_domain }}`)"

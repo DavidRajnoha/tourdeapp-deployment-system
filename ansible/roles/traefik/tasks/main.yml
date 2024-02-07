@@ -54,6 +54,7 @@
       - "{{ traefik_dir }}/acme.json:/acme.json"
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
+      system: "true"
       traefik.enable: "true"
       traefik.http.routers.traefik.rule: "Host(`{{ traefik_api_url }}`)"
       traefik.http.routers.traefik.entrypoints: "websecure"

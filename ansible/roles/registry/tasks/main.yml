@@ -47,6 +47,7 @@
       REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
       REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
     labels:
+      system: "true"
       traefik.enable: "true"
       traefik.http.routers.registry.rule: "Host(`{{ base_domain }}`)"
       traefik.http.routers.registry.entrypoints: "websecure"

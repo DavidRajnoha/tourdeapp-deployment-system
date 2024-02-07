@@ -36,6 +36,7 @@
       REDIS_PORT: "{{ redis_port }}"
       DEPLOY_TIMEOUT: "{{ deploy_timeout }}"
     labels:
+      system: "true"
       traefik.enable: "false"
   loop: "{{ range(1, dynamic_deploy_number_of_rq_workers + 1)|list }}"
 
@@ -57,6 +58,7 @@
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
+      system: "true"
       traefik.enable: "true"
       traefik.http.routers.deploy.rule: "Host(`{{ deploy_url }}`)"
       traefik.http.routers.deploy.middlewares: "deploy-auth"
