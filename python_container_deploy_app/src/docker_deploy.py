@@ -167,3 +167,19 @@ def delete_container(container_id):
         err = f'Null resource for container {container_id}: {str(e)}'
         logging.error(err)
         raise InternalDockerError(err)
+
+
+def get_logs(container_id):
+    try:
+        container = client.containers.get(container_id)
+        logs = container.logs().decode('utf-8')
+        return logs
+    except docker.errors.NotFound:
+        err = f'Container {container_id} not found'
+        logging.error(err)
+        raise InvalidParameterError(err)
+    except docker.errors.APIError as e:
+        err = f'API error for container {container_id}: {str(e)}'
+        logging.error(err)
+        raise InternalDockerError(err)
+

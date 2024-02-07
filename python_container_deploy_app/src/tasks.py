@@ -2,7 +2,7 @@ import logging
 import os
 import time
 
-from src.docker_deploy import deploy_container, delete_container,\
+from src.docker_deploy import deploy_container, delete_container, get_logs, \
     InternalDockerError, InvalidParameterError, DockerContainerStartError, \
     start_container, UnauthorizedError
 
@@ -195,6 +195,34 @@ def delete_all_applications(force=False):
 
     logging.info(f"Successfully deleted {len(deleted)} applications")
     return deleted, None, 200
+
+
+def get_application_logs(team_id):
+    try:
+        application = get_application_from_redis(team_id)
+        if not application:
+            err = f'No application found for team {team_id}\n'
+            logging.info(err)
+            return err, 404
+
+        status = application.get('status')
+        container_id = application.get('container_id')
+
+        if not container_id and status == 'running':
+            err = f'No container information stored for team {team_id}\n'
+            logging.error(err)
+            return err, 500
+    except InternalRedisError as e:
+        return str(e), 500
+    try:
+        application["logs"] = get_logs(application.get('container_id'))
+        logging.info(f"Successfully got logs for container {container_id} for team {team_id}")
+        save_to_redis(application)
+        return application, 200
+    except InternalDockerError as e:
+        err = f"Failed get logs for container {container_id} for team {team_id}\n" \
+              f"Error: {str(e)}\n"
+        logging.error(err)
 
 
 def resume_stopped_containers():
