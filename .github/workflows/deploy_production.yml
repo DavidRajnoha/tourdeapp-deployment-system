@@ -1,4 +1,4 @@
-name: Deploy Staging
+name: Deploy Production
 
 on:
   release:
@@ -48,6 +48,7 @@ jobs:
           deploy_url="deploy.{{ base_domain }}"
           dynamic_deploy_user=deploy
           dynamic_deploy_password=${{ secrets.PRODUCTION_DEPLOY_PASSWORD }}
+          dynamic_deploy_number_of_rq_workers=${{ vars.DYNAMIC_DEPLOY_NUMBER_OF_RQ_WORKERS }}
           
           prometheus_dir=/root/prometheus
           grafana_dir=/root/grafana
