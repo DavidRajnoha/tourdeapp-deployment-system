@@ -190,7 +190,7 @@
 
 - name: Set ntopng Docker image for amd64
   set_fact:
-    ntopng_image: "ntop/ntopng:latest"
+    ntopng_image: "ntop/ntopng.dev:latest"
   when: platform == "linux/amd64"
 
 - name: Set ntopng Docker image for arm64
