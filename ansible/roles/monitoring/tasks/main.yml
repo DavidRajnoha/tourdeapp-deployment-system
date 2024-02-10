@@ -180,12 +180,6 @@
     group: root
     mode: "0777"
 
-- name: Set ownership recursively for /var/lib/ntopng/
-  ansible.builtin.command:
-    cmd: chown -R root:root /var/lib/ntopng/
-  args:
-    warn: false  # Use to prevent warnings about using command module
-
 - name: Copy ntopng configuration file
   ansible.builtin.copy:
     src: ntopng_conf.json
