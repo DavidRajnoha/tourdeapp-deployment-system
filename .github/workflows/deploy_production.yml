@@ -107,4 +107,4 @@ jobs:
           target_ghost_dir=/root/ghost
           
           debug_mode=false
-          tda_round={{ TDA_ROUND_IMAGE_PREFIX }}
+          tda_round={{ vars.TDA_ROUND_IMAGE_PREFIX }}
