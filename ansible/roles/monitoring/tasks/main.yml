@@ -15,8 +15,6 @@
       traefik.http.routers.cadvisor.rule: "Host(`cadvisor.{{ base_domain }}`)"
       traefik.http.routers.cadvisor.entrypoints: "websecure"
       traefik.http.routers.cadvisor.tls.certresolver: "tlsResolver"
-    ports:
-      - "8080:8080"
     volumes:
       - "/:/rootfs:ro"
       - "/var/run:/var/run:rw"
@@ -29,7 +27,8 @@
       - "--docker_only=true"
       - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
 
-- file:
+- name: Create a directory for Prometheus
+  file:
     path: "{{ prometheus_dir }}"
     state: directory
     owner: root
@@ -50,8 +49,6 @@
     image: prom/prometheus:latest
     state: started
     restart_policy: always
-    ports:
-      - "9090:9090"
     volumes:
       - "{{ prometheus_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml"
     networks:
@@ -125,8 +122,6 @@
     image: grafana/grafana:latest
     state: started
     restart_policy: always
-    ports:
-      - "3000:3000"
     volumes:
       - "grafana_data:/var/lib/grafana"
       - "{{ grafana_dir }}/provisioning:/etc/grafana/provisioning"  # Mount shared provisioning directory
@@ -142,3 +137,98 @@
       traefik.http.routers.grafana.rule: "Host(`grafana.{{ base_domain }}`)"
       traefik.http.routers.grafana.entrypoints: "websecure"
       traefik.http.routers.grafana.tls.certresolver: "tlsResolver"
+
+
+- name: Ensure redis directory exists
+  file:
+    path: "{{ redis_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0777"
+
+- name: Stop existing NTOPNG container
+  docker_container:
+    name: "ntopng"
+    state: absent
+
+- name: Ensure redis directory exists
+  file:
+    path: "{{ redis_ntopng_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0777"
+
+- name: Run Redis container exposed for ntopng
+  docker_container:
+    name: redis-ntopng-exposed
+    image: redis:7.0
+    state: started
+    restart_policy: always
+    volumes:
+      - "{{ redis_ntopng_data_dir }}:/data"
+    ports:
+      - "6379:6379"
+    command: redis-server --protected-mode no
+
+- name: Ensure ntopng directory exists
+  file:
+    path: /var/lib/ntopng/
+    state: directory
+    owner: root
+    group: root
+    mode: "0777"
+
+- name: Set ownership recursively for /var/lib/ntopng/
+  ansible.builtin.command:
+    cmd: chown -R root:root /var/lib/ntopng/
+  args:
+    warn: false  # Use to prevent warnings about using command module
+
+- name: Copy ntopng configuration file
+  ansible.builtin.copy:
+    src: ntopng_conf.json
+    dest: /var/lib/ntopng/ntopng_conf.json
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Set ntopng Docker image for amd64
+  set_fact:
+    ntopng_image: "ntop/ntopng:latest"
+  when: platform == "linux/amd64"
+
+- name: Set ntopng Docker image for arm64
+  set_fact:
+    ntopng_image: "ntop/ntopng_arm64.dev"
+  when: platform == "linux/arm64/v8"
+
+- name: Run ntopng container
+  docker_container:
+    name: ntopng
+    image: "{{ ntopng_image }}"
+    state: started
+    restart_policy: always
+    # Removed the ports mapping since we'll use host network mode
+    # and ntopng will directly listen on the host's port 3001.
+    network_mode: host
+    labels:
+      system: "true"
+    env:
+      # Specify any needed environment variables here
+    volumes:
+      - /var/lib/ntopng:/var/lib/ntopng
+    command:
+      - "/usr/bin/ntopng"
+      - "--community"
+      - "--interface=traefik0"
+      - "-w 0.0.0.0:3001"
+      - "--redis=localhost:6379@15"
+      - "--config /var/lib/ntopng/ntopng_conf.json"
+    capabilities:
+      # Grant necessary capabilities for network monitoring
+      - NET_ADMIN
+      - NET_RAW
+#    # Ensure the container runs as root to access network devices, if not the default
+#    user: root

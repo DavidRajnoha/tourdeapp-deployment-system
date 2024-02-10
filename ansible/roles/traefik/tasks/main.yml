@@ -2,6 +2,14 @@
 - name: Create the monitoring / traefik network
   docker_network:
     name: web
+    driver_options:
+      com.docker.network.bridge.name: traefik0
+
+#- name: Create the monitoring / traefik network for system containers
+#  docker_network:
+#    name: system
+#    driver_options:
+#      com.docker.network.bridge.name: traefik1
 
 - name: Create the traefik directory
   file:
@@ -14,6 +22,14 @@
   template:
     src: traefik.yml.j2
     dest: "{{ traefik_dir }}/traefik.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Copy the traefik dynamic configuration file
+  template:
+    src: dynamic_conf.yml.j2
+    dest: "{{ traefik_dir }}/dynamic_conf.yml"
     owner: root
     group: root
     mode: "0644"
@@ -51,6 +67,7 @@
       - "443:443"
     volumes:
       - "{{ traefik_dir }}/traefik.yml:/etc/traefik/traefik.yml"
+      - "{{ traefik_dir }}/dynamic_conf.yml:/etc/traefik/dynamic_conf.yml"
       - "{{ traefik_dir }}/acme.json:/acme.json"
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
@@ -64,3 +81,5 @@
       traefik.http.routers.traefik.tls.certresolver: "tlsResolver"
     networks:
       - name: web
+    etc_hosts:
+      host.docker.internal: "host-gateway"

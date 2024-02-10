@@ -2,8 +2,12 @@ global:
   checkNewVersion: false
   sendAnonymousUsage: false
 
+# Enable DEBUG logs
 log:
-  level: ERROR
+  level: DEBUG
+
+# Enable access logs
+accessLog: {}
 
 api:
   dashboard: true
@@ -16,7 +20,10 @@ entryPoints:
 
 providers:
   docker:
+    exposedByDefault: false
     network: web
+  file:
+    filename: /etc/traefik/dynamic_conf.yml
 
 certificatesResolvers:
   tlsResolver:
