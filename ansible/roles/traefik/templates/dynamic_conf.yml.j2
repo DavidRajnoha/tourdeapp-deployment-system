@@ -1,0 +1,15 @@
+http:
+  routers:
+    ntopng-router:
+      rule: "Host(`ntopng.{{ base_domain }}`)"
+      service: "ntopng-service"
+      entryPoints:
+        - "websecure"
+      tls:
+        certResolver: "tlsResolver"
+
+  services:
+    ntopng-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:3001"
