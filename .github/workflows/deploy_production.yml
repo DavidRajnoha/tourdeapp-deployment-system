@@ -50,8 +50,7 @@ jobs:
           dynamic_deploy_password=${{ secrets.PRODUCTION_DEPLOY_PASSWORD }}
           dynamic_deploy_number_of_rq_workers=${{ vars.DYNAMIC_DEPLOY_NUMBER_OF_RQ_WORKERS }}
           
-          prometheus_dir=/root/prometheus
-          grafana_dir=/root/grafana
+          data_dir=${{ vars.PRODUCTION_DATA_DIR }}
           grafana_admin_user=admin
           grafana_admin_password=${{ secrets.PRODUCTION_GRAFANA_PASSWORD }}
         # The password used for decrypting vaulted files
