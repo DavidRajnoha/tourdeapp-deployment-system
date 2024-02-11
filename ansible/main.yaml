@@ -13,6 +13,11 @@
       redis_docker_tag: 7.0
       redis_network: redis-network
       redis_ntopng_data_dir: "{{ redis_data_dir }}/ntopng"
+      traefik_dir: "{{ data_dir }}/traefik"
+      prometheus_dir: "{{ data_dir }}/prometheus"
+      grafana_dir: "{{ data_dir }}/grafana"
+      promtail_dir: "{{ data_dir }}/promtail"
+      loki_dir: "{{ data_dir }}/loki"
   roles:
     - { role: docker, tags: docker }
     - { role: traefik, tags: traefik }

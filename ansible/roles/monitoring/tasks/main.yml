@@ -27,6 +27,84 @@
       - "--docker_only=true"
       - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
 
+- name: Create a directory for Loki
+  file:
+    path: "{{ loki_dir }}/data"
+    state: directory
+    owner: root
+    group: root
+    mode: '0777'
+
+
+- name: Copy Loki configuration
+  copy:
+      src: "loki-config.yml"
+      dest: "{{ loki_dir }}/loki-config.yml"  # Make sure this path is correct
+      owner: root
+      group: root
+      mode: "0644"
+
+
+- name: Run Loki container
+  docker_container:
+    name: loki
+    image: grafana/loki:latest
+    state: started
+    restart_policy: always
+    volumes:
+      - "{{ loki_dir }}/loki-config.yml:/etc/loki/config.yml"
+      - "{{ loki_dir }}/data:/loki"
+    networks:
+      - name: web
+    labels:
+      system: "true"
+      traefik.enable: "true"
+      traefik.docker.network: "web"
+      traefik.http.routers.loki.rule: "Host(`loki.{{ base_domain }}`)"
+      traefik.http.routers.loki.entrypoints: "websecure"
+      traefik.http.routers.loki.tls.certresolver: "tlsResolver"
+
+
+- name: Create a directory for promtail
+  file:
+    path: "{{ promtail_dir }}"
+    state: directory
+    owner: root
+    group: root
+
+- name: Copy Promtail configuration
+  copy:
+    src: "promtail-config.yml"
+    dest: "{{ promtail_dir }}/promtail-config.yml"  # Make sure this path is correct
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Run Promtail container
+  docker_container:
+    name: promtail
+    image: grafana/promtail:latest
+    state: started
+    restart_policy: always
+    volumes:
+      - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "{{ promtail_dir }}:/etc/promtail/"
+      - "/tmp:/tmp"  # For positions file
+    networks:
+      - name: web
+    exposed_ports:
+      - "9080"
+    labels:
+      system: "true"
+      traefik.docker.network: "web"
+      traefik.enable: "true"
+      traefik.http.routers.promtail.rule: "Host(`promtail.{{ base_domain }}`)"
+      traefik.http.routers.promtail.entrypoints: "websecure"
+      traefik.http.routers.promtail.tls.certresolver: "tlsResolver"
+    command:
+      - "-config.file=/etc/promtail/promtail-config.yml"
+
 - name: Create a directory for Prometheus
   file:
     path: "{{ prometheus_dir }}"
