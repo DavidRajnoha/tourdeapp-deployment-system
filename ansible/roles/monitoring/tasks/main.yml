@@ -246,9 +246,8 @@
     restart_policy: always
     volumes:
       - "{{ redis_ntopng_data_dir }}:/data"
-    ports:
-      - "6379:6379"
-    command: redis-server --protected-mode no
+    network_mode: host
+    command: redis-server --protected-mode no --bind 127.0.0.1
 
 - name: Ensure ntopng directory exists
   file:
