@@ -50,6 +50,14 @@ def save_to_redis(application):
     try:
         redis_db.sadd('managed_applications', team_id)
         redis_db.sadd('used_subdomains', subdomain)
+
+        # Remove the "error" field from Redis if it's not in the application dict
+        if "error" not in application:
+            logging.info("Removing error field from Redis")
+            if redis_db.hexists(team_id, "error"):
+                redis_db.hdel(team_id, "error")
+
+        logging.info(f"Saving application data for team {team_id} to Redis")
         redis_db.hset(team_id, mapping=application)
     except redis.exceptions.RedisError as e:
         logging.error('Redis error: {}'.format(str(e)))
