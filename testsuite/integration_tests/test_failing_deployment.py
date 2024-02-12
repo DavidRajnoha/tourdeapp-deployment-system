@@ -64,7 +64,9 @@ def test_get_failing_application_data(domain_name, credentials, failing_applicat
     assert 'container_id' in data
 
 
-def test_delete_failing_application_success(domain_name, credentials, failing_application):
+
+def test_delete_failing_application_success(domain_name, credentials, failing_application,
+                                            deploy_application_function, custom_registry_image, registry_credentials):
     """
     Tests the successful deletion of a deployed application.
     The test deploys an application, deletes it, and then verifies it no longer exists.
@@ -73,6 +75,14 @@ def test_delete_failing_application_success(domain_name, credentials, failing_ap
     url = f'https://deploy.{domain_name}/application/{team_id}'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
 
+    # get application data and verify that it is not running
+    response = requests.get(url, auth=auth)
+    assert response.status_code == 200
+    data = response.json()
+    assert 'status' in data
+    assert data['status'] == 'exited'
+    assert 'error' in data
+
     # Delete the application
     delete_response = requests.delete(url, auth=auth)
     assert delete_response.status_code == 200 or delete_response.status_code == 202
@@ -80,6 +90,41 @@ def test_delete_failing_application_success(domain_name, credentials, failing_ap
     # Verify the application no longer exists by calling the /application endpoint
     get_response = requests.get(url, auth=auth)
     assert get_response.status_code == 404
+
+
+def test_redeploy_of_failing_application(domain_name, credentials, failing_application,
+                                         deploy_application_function, custom_registry_image, registry_credentials):
+    """
+    Tests the successful deletion of a deployed application.
+    The test deploys an application, deletes it, and then verifies it no longer exists.
+    After that, the test deployes the application once again and verifies that it is running with correct records in the
+    database.
+    """
+    _, subdomain, team_id = failing_application
+    url = f'https://deploy.{domain_name}/application/{team_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+    # get application data and verify that it is not running
+    response = requests.get(url, auth=auth)
+    assert response.status_code == 200
+    data = response.json()
+    assert 'status' in data
+    assert data['status'] == 'exited'
+    assert 'error' in data
+
+    redeployed_app = deploy_application_function(team_id, custom_image_name=custom_registry_image,
+                                                 registry_credentials=registry_credentials)
+    _, subdomain, team_id = redeployed_app
+    url = f'https://deploy.{domain_name}/application/{team_id}'
+    auth = HTTPBasicAuth(credentials[0], credentials[1])
+
+    response = requests.get(url, auth=auth)
+    assert response.status_code == 200
+    data = response.json()
+    assert 'status' in data
+    assert data['status'] == 'running'
+    assert 'error' not in data
+
 
 
 def test_unauthorized_registry_fails(domain_name, credentials, unauthorized_registry_application):
@@ -101,7 +146,6 @@ def test_successful_redeploy_on_missing_container_id(domain_name, credentials, u
 
     redeployed_app = deploy_application_function(team_id, custom_image_name=custom_registry_image,
                                                  registry_credentials=registry_credentials)
-
     _, subdomain, team_id = redeployed_app
     url = f'https://deploy.{domain_name}/application/{team_id}'
     auth = HTTPBasicAuth(credentials[0], credentials[1])
