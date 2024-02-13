@@ -1,16 +1,30 @@
 name: Deploy Staging
 
 on: 
- push:
-  branches:
-   - main
-   - pipeline-staging
+ pull_request:
+  types: [opened, reopened]
 
 # uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1
 jobs:
-  run-ansible:
+  check-changes:
     runs-on: ubuntu-latest
+    outputs:
+      run-ansible-deploy: ${{ steps.deploy.outputs.ansible || steps.deploy.outputs.app-deploy }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: deploy
+        with:
+          filters: |
+            ansible:
+              - 'ansible/**'
+            app-deploy:
+              - 'python_container_deploy_app/**'
 
+  run-ansible:
+    needs: check-changes
+    if: needs.check-changes.outputs.run-ansible-deploy == 'true'
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -65,3 +79,52 @@ jobs:
         # sudo: # optional
         # Set to "true" if the Ansible output should not include colors (defaults to "false")
         # no_color: # optional
+
+  run-tests:
+    needs: run-ansible
+    if: ${{ ! failure() && ! cancelled() }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: testsuite
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Setup Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11' # Adjust as necessary
+
+    - name: Install poetry
+      uses: abatilo/actions-poetry@v2
+    - name: Setup a local virtual environment (if no poetry.toml file)
+      run: |
+        poetry config virtualenvs.create true --local
+        poetry config virtualenvs.in-project true --local
+
+    - name: Define a cache for the virtual environment based on the dependencies lock file
+      uses: actions/cache@v3
+      with:
+        path: ./.venv
+        key: venv-${{ hashFiles('poetry.lock') }}
+
+    # Install dependencies using Poetry
+    - name: Install dependencies
+      run: poetry install --no-root
+
+    # Run the specific pytest test
+    - name: Run pytest on specific test
+      env:
+        CLEANUP: true
+        BASE_DOMAIN: ${{ vars.STAGING_DOMAIN }}
+        IMAGE_WHOAMI: ${{ vars.TEST_IMAGE_BASIC }}
+        IMAGE_ALWAYS_FAIL: ${{ vars.IMAGE_ALWAYS_FAIL }}
+        PLATFORM: ${{ vars.STAGING_ARCH }}
+        REGISTRY: ${{ vars.STAGING_REGISTRY }}
+        REGISTRY_USER: ${{ secrets.STAGING_REGISTRY_USER }}
+        REGISTRY_PASSWORD: ${{ secrets.STAGING_REGISTRY_PASSWORD }}
+        AUTH_USERNAME: ${{ secrets.DEPLOY_STAGING_USER }}
+        AUTH_PASSWORD: ${{ secrets.DEPLOY_STAGING_PASSWORD }}
+      run: poetry run pytest integration_tests

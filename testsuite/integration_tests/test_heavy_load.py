@@ -4,12 +4,10 @@ import requests
 
 
 @pytest.mark.parametrize("num_apps", [
-    1
-    # 10,
-    # 20,
-    # 30,
-    # 50,
-    # 300
+    1,
+    pytest.param(10, marks=pytest.mark.skip(reason="This test is slow")),
+    pytest.param(50, marks=pytest.mark.skip(reason="This test is slow")),
+    pytest.param(300, marks=pytest.mark.skip(reason="This test is slow")),
 ])
 def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_multiple_applications, num_apps):
     # Deploy the specified number of apps
