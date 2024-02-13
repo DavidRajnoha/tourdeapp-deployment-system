@@ -11,58 +11,87 @@ from concurrent.futures import ThreadPoolExecutor
 import concurrent
 import docker
 import string
+import os
+
+
+@pytest.fixture(scope='session')
+def config():
+    """Loads and returns the configuration."""
+    config_parser = configparser.ConfigParser()
+    config_parser.read('config.ini')
+
+    # A helper function to get the configuration value
+    # with an environment variable override
+    def get_config(section, option, env_var=None, default=None):
+        # If an environment variable is specified and exists, return its value
+        if env_var and env_var in os.environ:
+            return os.environ[env_var]
+        # Otherwise, return the value from config.ini or the default
+        return config_parser.get(section, option, fallback=default)
+
+        # Use a dictionary to structure the config for easy access
+    config_map = {
+        'cleanup': {
+            'cleanup': get_config('cleanup', 'cleanup', env_var='CLEANUP', default='false').lower() in ['true', '1',
+                                                                                                        't', 'y',                                                                             'yes'],
+        },
+        'url': {
+            'base_domain': get_config('url', 'base_domain', env_var='BASE_DOMAIN'),
+        },
+        'images': {
+            'whoami': get_config('images', 'whoami', env_var='IMAGE_WHOAMI'),
+            'always_fail': get_config('images', 'always_fail', env_var='IMAGE_ALWAYS_FAIL'),
+            'platform': get_config('images', 'platform', env_var='PLATFORM'),
+            'custom_registry': get_config('images', 'custom_registry', env_var='REGISTRY'),
+            'custom_registry_user': get_config('images', 'custom_registry_user', env_var='REGISTRY_USER'),
+            'custom_registry_password': get_config('images', 'custom_registry_password',
+                                                   env_var='REGISTRY_PASSWORD'),
+        },
+        'auth': {
+            'username': get_config('auth', 'username', env_var='AUTH_USERNAME'),
+            'password': get_config('auth', 'password', env_var='AUTH_PASSWORD'),
+        }
+    }
+    return config_map
 
 
 @pytest.fixture
-def cleanup():
-    """Returns the configuration whether to cleanup after the test."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-    return config['cleanup']['cleanup'] in ['true', 'True']
+def cleanup(config):
+    return config['cleanup']
 
 
 @pytest.fixture
-def domain_name():
+def domain_name(config):
     """Returns the domain name for the application deployment."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
     return config['url']['base_domain']
 
 
 @pytest.fixture
-def image_name():
+def image_name(config):
     """Returns the image name to be used for the application deployment."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
     return config['images']['whoami']
 
 
 @pytest.fixture
-def always_fail_image_name():
+def always_fail_image_name(config):
     """Returns an image that fails on deployment."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
     return config['images']['always_fail']
 
 
-
 @pytest.fixture
-def platform():
+def platform(config):
     """Returns the platform to be used for the application deployment."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
     return config['images']['platform']
 
+
 @pytest.fixture
-def registry_credentials():
+def registry_credentials(config):
     """Returns the credentials for the custom Docker registry."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
     return f"{config['images']['custom_registry_user']}:{config['images']['custom_registry_password']}"
 
 
 @pytest.fixture
-def custom_registry_image(image_name, platform):
+def custom_registry_image(image_name, platform, config):
     """
     Returns the image name to be used for the application deployment after performing several operations:
 
@@ -74,8 +103,6 @@ def custom_registry_image(image_name, platform):
 
     After the test execution, the fixture also removes the retagged image from the local machine.
     """
-    config = configparser.ConfigParser()
-    config.read('config.ini')
     custom_registry = config['images']['custom_registry']
     custom_registry_user = config['images']['custom_registry_user']
     custom_registry_password = config['images']['custom_registry_password']
@@ -104,11 +131,8 @@ def custom_registry_image(image_name, platform):
 
 
 @pytest.fixture
-def credentials():
-    """Reads and returns the username and password from a configuration file."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-
+def credentials(config):
+    """Reads and returns the username and password from the configuration."""
     username = config['auth']['username']
     password = config['auth']['password']
     return username, password
