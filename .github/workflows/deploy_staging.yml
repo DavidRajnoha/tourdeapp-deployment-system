@@ -1,10 +1,8 @@
 name: Deploy Staging
 
 on: 
- push:
-  branches:
-   - main
-   - testing-in-ci-cd-pipeline
+ pull_request:
+  types: [opened, reopened]
 
 # uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1
 jobs:

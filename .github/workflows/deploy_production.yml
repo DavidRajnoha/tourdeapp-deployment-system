@@ -1,15 +1,44 @@
 name: Deploy Production
 
 on:
-  release:
-    types:
-      - published
+  push:
+    branches:
+      - main
 
 # uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1
 jobs:
-  run-ansible:
+  check-changes:
     runs-on: ubuntu-latest
+    outputs:
+      run-ansible-deploy: ${{ steps.deploy.outputs.ansible || steps.deploy.outputs.app-deploy }}
+      run-registry-deploy: ${{ steps.registry.outputs.ansible || steps.registry.outputs.basic_auth || steps.registry.outputs.ghost_api }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: deploy
+        with:
+          filters: |
+            ansible:
+              - 'ansible/**'
+            app-deploy:
+              - 'python_container_deploy_app/**'
+      - uses: dorny/paths-filter@v3
+        id: registry
+        with:
+          filters: |
+            ansible:
+              - 'ansible/**'
+            basic_auth:
+              - 'basic_auth/**'
+            ghost_api:
+              - 'ghost_api/**'
+      
 
+  run-ansible:
+    needs: check-changes
+    if: needs.check-changes.outputs.run-ansible-deploy == 'true'
+
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -64,6 +93,11 @@ jobs:
         # Set to "true" if the Ansible output should not include colors (defaults to "false")
         # no_color: # optional
 
+  run-ansible-registry:
+    needs: check-changes
+    if: needs.check-changes.outputs.run-registry-deploy == 'true'
+    runs-on: ubuntu-latest
+    steps:
     - name: Run Ansible playbook for deploy registry
       uses: dawidd6/action-ansible-playbook@v2.6.1
       with:
