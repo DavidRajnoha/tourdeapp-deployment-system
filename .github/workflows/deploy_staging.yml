@@ -129,4 +129,4 @@ jobs:
         REGISTRY_PASSWORD: ${{ secrets.STAGING_REGISTRY_PASSWORD }}
         AUTH_USERNAME: ${{ secrets.DEPLOY_STAGING_USER }}
         AUTH_PASSWORD: ${{ secrets.DEPLOY_STAGING_PASSWORD }}
-      run: poetry run pytest integration_tests/test_standard_proces.py
+      run: poetry run pytest integration_tests
