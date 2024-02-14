@@ -4,7 +4,6 @@ from src.tasks import delete_application as delete_application_task
 from src.tasks import delete_all_applications as delete_all_applications_task
 from src.tasks import get_application as get_application_task
 from src.tasks import get_applications as get_applications_task
-from src.tasks import get_application_logs as get_application_logs_task
 from src.tasks import reset_redis as reset_redis_task
 from src.tasks import resume_stopped_containers as resume_stopped_containers_task
 
@@ -32,16 +31,6 @@ def reset_redis():
 def get_application(team_id):
     # Get application data from the hash associated with the team_id
     result, status = get_application_task(team_id)
-    if status == 200:
-        return jsonify(result), status
-    else:
-        return jsonify({"message": result}), status
-
-
-@app.route('/application/<string:team_id>/logs', methods=['GET'])
-def get_application_logs(team_id):
-    # Get application data from the hash associated with the team_id
-    result, status = get_application_logs_task(team_id)
     if status == 200:
         return jsonify(result), status
     else:

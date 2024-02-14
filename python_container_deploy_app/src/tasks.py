@@ -1,8 +1,12 @@
+import json
 import logging
 import os
 import time
+from typing import Optional
 
-from src.docker_deploy import deploy_container, delete_container, get_logs, \
+import requests
+
+from src.docker_deploy import deploy_container, delete_container, \
     InternalDockerError, InvalidParameterError, DockerContainerStartError, \
     start_container, UnauthorizedError
 
@@ -15,6 +19,7 @@ from src.async_rq import store_data_for_callback, notify_callback_url
 traefik_domain = os.environ.get('BASE_DOMAIN', 'localhost')
 traefik_network = os.environ.get('TRAEFIK_NETWORK', 'traefik_default')
 deploy_timeout = int(os.environ.get('DEPLOY_TIMEOUT', 60))
+loki_url = os.environ.get('LOKI_URL', 'http://loki:3100/')
 
 logging.basicConfig(level=logging.INFO)
 
@@ -197,34 +202,6 @@ def delete_all_applications(force=False):
     return deleted, None, 200
 
 
-def get_application_logs(team_id):
-    try:
-        application = get_application_from_redis(team_id)
-        if not application:
-            err = f'No application found for team {team_id}\n'
-            logging.info(err)
-            return err, 404
-
-        status = application.get('status')
-        container_id = application.get('container_id')
-
-        if not container_id and status == 'running':
-            err = f'No container information stored for team {team_id}\n'
-            logging.error(err)
-            return err, 500
-    except InternalRedisError as e:
-        return str(e), 500
-    try:
-        application["logs"] = get_logs(application.get('container_id'))
-        logging.info(f"Successfully got logs for container {container_id} for team {team_id}")
-        save_to_redis(application)
-        return application, 200
-    except InternalDockerError as e:
-        err = f"Failed get logs for container {container_id} for team {team_id}\n" \
-              f"Error: {str(e)}\n"
-        logging.error(err)
-
-
 def resume_stopped_containers():
     try:
         applications = get_applications_from_redis()
@@ -270,18 +247,62 @@ def resume_stopped_containers():
 def get_application(team_id):
     try:
         application = get_application_from_redis(team_id)
+
         if not application:
             err = f'No application found for team {team_id}\n'
             logging.info(err)
             return err, 404
+
+        application = update_logs(application)
         return application, 200
     except InternalRedisError as e:
         return str(e), 500
 
 
+def update_logs(application):
+    """
+    Query Loki for logs for the given application
+    Queries Loki if the logs are older than 60 seconds or the information is missing (first time update)
+    """
+    logs_updated_at: Optional[str] = application.get('logs_updated_at')
+
+    if logs_updated_at and time.time() - float(logs_updated_at) < 60:
+        logging.debug(f"Logs for team {application.get('team_id')} are up to date")
+        return application
+
+    container_id = application.get('container_id')
+    if not container_id:
+        err = f'No container information stored for team {application.get("team_id")}\n'
+        logging.info(err)
+        return application
+
+    query = "{container_id=\"" + container_id + "\"}"
+    url = f'{loki_url}/loki/api/v1/query_range?query={query}'
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        logs = response.json()
+        application['logs_updated_at'] = time.time()
+        application['logs'] = json.dumps(logs['data']['result'][0]['values'])
+
+        try:
+            save_to_redis(application)
+        except InternalRedisError as e:
+            logging.error(f"Failed to save application {application} to redis")
+
+        return application
+
+    except requests.exceptions.RequestException as e:
+        err = f'Failed to get logs for container {container_id}: {str(e)}\n'
+        logging.error(err)
+        return application
+
+
 def get_applications():
     try:
         applications = get_applications_from_redis()
+        map(update_logs, applications)
     except InternalRedisError as e:
         return str(e), 500
     return applications, 200

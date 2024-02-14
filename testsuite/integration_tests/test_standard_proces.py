@@ -1,3 +1,4 @@
+import json
 import time
 
 import requests
@@ -45,6 +46,7 @@ def test_get_application_success(domain_name, credentials, deploy_random_applica
     assert 'image_name' in data
     assert 'started_at' in data
     assert data['status'] == 'running'
+    assert 'logs' in data
     # assert started at is an unix timestamp not older then 1 minute
     assert int(data['started_at']) > int(time.time()) - 60
 
@@ -125,3 +127,4 @@ def test_get_all_applications(initial_cleanup, domain_name, credentials, deploy_
         assert 'subdomain' in app
         assert 'image_name' in app
         assert 'started_at' in app
+        assert 'logs' in app
