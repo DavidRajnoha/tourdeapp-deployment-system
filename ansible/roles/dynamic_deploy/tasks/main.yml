@@ -1,11 +1,14 @@
 ---
-- name: Copy project files to the remote server
-  copy:
-    src: "{{ source_app_dir }}"
+- name: Synchronize project files to the remote server
+  synchronize:
+    src: "{{ source_app_dir }}/"
     dest: "{{ target_app_dir }}"
-    owner: root
-    group: root
-    mode: "0755"
+    delete: yes
+    recursive: yes
+    owner: yes
+    group: yes
+    rsync_opts:
+      - "--chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r"
 
 - name: Build Docker image for Flask app
   community.general.docker_image:
