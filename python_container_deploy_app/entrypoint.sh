@@ -2,8 +2,8 @@
 
 if [ "$DEBUG" = "True" ]; then
   echo "Running Flask application with the native server."
-  exec python app.py
+  exec python src/app.py
 else
   echo "Running Flask application with Gunicorn."
-  exec gunicorn -b :5000 app:app
+  exec gunicorn -b :5000 src.app:app
 fi

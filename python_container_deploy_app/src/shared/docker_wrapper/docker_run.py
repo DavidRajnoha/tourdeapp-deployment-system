@@ -1,56 +1,16 @@
 import time
-
 import docker
 import logging
+
+from shared.docker_wrapper.docker_utils import extract_registry_from_image_name, DockerContainerStartError, InternalDockerError, \
+    InvalidParameterError, UnauthorizedError
+
 
 client = docker.from_env()
 
 
-class DockerContainerStartError(Exception):
-    def __init__(self, message, container_logs, container_status, container_id):
-        super().__init__(message)
-        self.container_id = container_id
-        self.container_status = container_status
-        self.container_logs = container_logs
-
-
-class InternalDockerError(Exception):
-    pass
-
-
-class InvalidParameterError(Exception):
-    pass
-
-
-class UnauthorizedError(Exception):
-    pass
-
-
-def extract_registry_from_image_name(image_name):
-    """
-    Extract the Docker registry URL from a given Docker image name.
-
-    Parameters:
-        image_name (str): The full name of the Docker image.
-
-    Returns:
-        str: The extracted Docker registry URL, or None if not found.
-    """
-    parts = image_name.split('/')
-
-    # If there's only one part, it means the image is from Docker Hub
-    if len(parts) == 1:
-        return None  # Default to Docker Hub
-
-    # Check if the first part contains a '.' or a ':', indicating it's likely a registry URL
-    if '.' in parts[0] or ':' in parts[0]:
-        return parts[0]
-
-    return None  # Default to Docker Hub
-
-
-def deploy_container(image_name, subdomain, container_name, registry_credentials=None,
-                     network=None, traefik_domain=None, timeout=60):
+def run_container(image_name, subdomain, container_name, registry_credentials=None,
+                  network=None, traefik_domain=None, timeout=60):
     try:
         logging.info(f'Attempting to pull image: {image_name}')
         if registry_credentials:
@@ -98,28 +58,6 @@ def deploy_container(image_name, subdomain, container_name, registry_credentials
         raise InternalDockerError('API error: {}'.format(str(e)))
 
 
-def start_container(container_id):
-    try:
-        if container_id is None:
-            logging.error('Container ID cannot be None')
-            raise InvalidParameterError('Container ID cannot be None')
-        container = client.containers.get(container_id)
-        if container.status == 'running':
-            logging.info(f'Container {container_id} is already running')
-            return None, f'Container {container_id} is already running'
-        container.start()
-        logging.info(f'Started container {container_id}')
-        return int(time.time()), f'Started container {container_id}'
-    except docker.errors.NotFound:
-        err = f'Container {container_id} not found'
-        logging.error(err)
-        raise InvalidParameterError(err)
-    except docker.errors.APIError as e:
-        err = f'API error for container {container_id}: {str(e)}'
-        logging.error(err)
-        raise InternalDockerError(err)
-
-
 def wait_for_container(container, timeout):
     start_time = time.time()
     running = False
@@ -145,25 +83,3 @@ def wait_for_container(container, timeout):
             logging.info(f'Stopped and removed container {container.id}')
 
             raise DockerContainerStartError(err, container_logs, container_status, container_id)
-
-
-def delete_container(container_id):
-    try:
-        container = client.containers.get(container_id)
-        container.stop()
-        container.remove()
-        msg = f'Stopped and removed container {container_id}\n'
-        logging.info(msg)
-        return True
-    except docker.errors.NotFound:
-        msg = f'Container {container_id} already does not exist'
-        logging.info(msg)
-        return False
-    except docker.errors.APIError as e:
-        err = f'API error for container {container_id}: {str(e)}'
-        logging.error(err)
-        raise InternalDockerError(err)
-    except docker.errors.NullResource as e:
-        err = f'Null resource for container {container_id}: {str(e)}'
-        logging.error(err)
-        raise InternalDockerError(err)

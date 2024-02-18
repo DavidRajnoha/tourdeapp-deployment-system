@@ -1,10 +1,7 @@
 import requests
 import logging
-from rq import Queue
 import rq
-from src.persistance import redis_queue
 
-queue = Queue('default', connection=redis_queue)
 
 def notify_callback_url(job, *args, **kwargs):
     callback_url = job.meta.get('callback_url')
@@ -19,6 +16,7 @@ def notify_callback_url(job, *args, **kwargs):
             })
         except requests.exceptions.RequestException as e:
             logging.error("Failed to send callback to URL: %s", callback_url)
+
 
 def store_data_for_callback(application, status, status_code):
     # Get current job

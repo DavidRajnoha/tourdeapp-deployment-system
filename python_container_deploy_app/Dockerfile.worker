@@ -5,10 +5,12 @@ WORKDIR /app
 
 COPY . /app
 
+ENV PYTHONPATH /app/src
+
 RUN pip install pipenv \
     && pipenv install --system --deploy
 
 # Grant access to docker.sock to allow container parallelism
 VOLUME /var/run/docker.sock
 
-CMD ["python", "worker.py"]
+CMD ["python", "src/worker.py"]

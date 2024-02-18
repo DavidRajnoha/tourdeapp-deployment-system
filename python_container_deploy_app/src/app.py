@@ -1,17 +1,20 @@
+import os
 from flask import Flask, request, jsonify
-from src.tasks import deploy_application as deploy_application_task
-from src.tasks import delete_application as delete_application_task
-from src.tasks import delete_all_applications as delete_all_applications_task
-from src.tasks import get_application as get_application_task
-from src.tasks import get_applications as get_applications_task
-from src.tasks import reset_redis as reset_redis_task
-from src.tasks import resume_stopped_containers as resume_stopped_containers_task
+from tasks.run_tasks import deploy_application as deploy_application_task
+from tasks.delete_tasks import delete_application as delete_application_task
+from tasks.delete_tasks import delete_all_applications as delete_all_applications_task
+from tasks.start_tasks import resume_stopped_containers as resume_stopped_containers_task
+from shared.persistance.applications import get_application
+from shared.persistance.applications import get_applications
+from shared.persistance.applications import reset_redis
+from shared.persistance.redis_persistance import redis_queue
+from rq import Queue
 
-
-from src.async_rq import queue
 import logging
 
 app = Flask(__name__)
+queue = Queue('default', connection=redis_queue)
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -22,15 +25,15 @@ def home():
 
 
 @app.route('/reset-redis', methods=['GET'])
-def reset_redis():
-    message, status = reset_redis_task()
+def reset_redis_endpoint():
+    message, status = reset_redis()
     return jsonify({"message": message}), status
 
 
 @app.route('/application/<string:team_id>', methods=['GET'])
-def get_application(team_id):
+def get_application_endpoint(team_id):
     # Get application data from the hash associated with the team_id
-    result, status = get_application_task(team_id)
+    result, status = get_application(team_id)
     if status == 200:
         return jsonify(result), status
     else:
@@ -38,7 +41,7 @@ def get_application(team_id):
 
 
 @app.route('/application/<string:team_id>', methods=['POST'])
-def deploy_application(team_id):
+def deploy_application_endpoint(team_id):
     subdomain = request.args.get('subdomain', team_id)
     registry_credentials = request.args.get('registry-credentials', None)
     image_name = request.args.get('image-name', get_image_name(team_id))
@@ -59,7 +62,7 @@ def deploy_application(team_id):
 
 
 @app.route('/application', methods=['PUT'])
-def restart_all_application():
+def restart_all_applications_endpoint():
     callback_url = request.args.get('callback-url', None)
 
     # Enqueue the function call
@@ -75,13 +78,13 @@ def restart_all_application():
 
 
 @app.route('/application', methods=['GET'])
-def get_all_applications():
-    applications, status = get_applications_task()
+def get_all_applications_endpoint():
+    applications, status = get_applications()
     return jsonify(applications), status
 
 
 @app.route('/application/<string:team_id>', methods=['DELETE'])
-def delete_application(team_id):
+def delete_application_endpoint(team_id):
     force = request.args.get('force', 'false').lower() in ['true', '1', 'yes']
 
     # Delete the specified application
@@ -93,7 +96,7 @@ def delete_application(team_id):
 
 
 @app.route('/application', methods=['DELETE'])
-def delete_all_applications():
+def delete_all_applications_endpoint():
     force = request.args.get('force', 'false').lower() in ['true', '1', 'yes']
     delete_all = request.args.get('delete-all-applications', None)
 

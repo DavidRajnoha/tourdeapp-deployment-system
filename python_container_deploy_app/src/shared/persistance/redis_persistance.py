@@ -9,6 +9,7 @@ rq_db_id = int(os.getenv('RQ_DB', 1))
 redis_db = redis.Redis(host=redis_host, port=redis_port, db=0, charset="utf-8", decode_responses=True)
 redis_queue = redis.Redis(host=redis_host, port=redis_port, db=rq_db_id, charset="utf-8")
 
+
 def get_application(team_id):
     # Check if the application already exists
     if redis_db.sismember('managed_applications', team_id):
@@ -19,6 +20,7 @@ def get_application(team_id):
             raise InternalRedisError(err)
         return application
     return None
+
 
 def get_applications():
     team_ids = get_all_team_ids()

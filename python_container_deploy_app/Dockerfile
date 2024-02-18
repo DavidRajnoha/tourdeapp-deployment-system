@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY . /app
 
+ENV PYTHONPATH /app/src
+
 # Setup entry point
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
