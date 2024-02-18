@@ -8,15 +8,14 @@ from shared.persistance.applications import get_application
 from shared.persistance.applications import get_applications
 from shared.persistance.applications import reset_redis
 from shared.persistance.redis_persistance import redis_queue
+from shared.utils import get_log_level, get_image_name
 from rq import Queue
 
 import logging
 
 app = Flask(__name__)
 queue = Queue('default', connection=redis_queue)
-
-
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=get_log_level())
 
 
 @app.route('/', methods=['GET'])
@@ -152,10 +151,6 @@ def delete_all_applications_endpoint():
         return jsonify({"deleted_ids": deleted}), 200
     else:
         return jsonify({"message": "Delete all flag not set"}), 400
-
-
-def get_image_name(team_id):
-    return f"traefik/whoami"
 
 
 if __name__ == '__main__':
