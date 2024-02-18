@@ -6,6 +6,23 @@ from shared.persistance.redis_persistance import get_applications as get_applica
 
 
 def resume_stopped_containers():
+    """
+    Attempts to resume all stopped Docker containers for applications stored in Redis. This function iterates through
+    all applications, checks their status, and starts their associated containers if they are not already running.
+    Updates the application status and start time in Redis upon successful container start.
+
+    :return: Tuple (None or str, int). If an error occurs while accessing Redis or starting a container,
+             returns a tuple containing an error message and a 500 status code. If all containers are processed
+             successfully, returns None and a 500 status code only if the final Redis save fails for any application.
+
+    :raises InternalRedisError: If an error occurs while accessing or modifying Redis data.
+    :raises InvalidParameterError: If the container ID provided to `start_container` is invalid.
+    :raises InternalDockerError: If a Docker operation fails during container start.
+
+    Note: The function leverages `get_applications_from_redis` to fetch application data, `start_container` to resume
+    containers, and `save_to_redis` to update application status in Redis. It logs the status of each operation, providing
+    detailed feedback on the process and handling errors appropriately.
+    """
     try:
         applications = get_applications_from_redis()
         logging.info(f"Found {len(applications)} applications")

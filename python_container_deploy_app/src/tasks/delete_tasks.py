@@ -6,6 +6,25 @@ from shared.persistance.redis_persistance import get_application as get_applicat
 
 
 def delete_application(team_id, force=False):
+    """
+    Deletes an application for a given team ID by removing its associated container and Redis records. If the container
+    is running, it attempts to delete the container. If the container cannot be deleted and the `force` flag is not set,
+    the deletion process stops. If `force` is true, it proceeds to remove the application's Redis records regardless of
+    container deletion success.
+
+    :param team_id: str. The unique identifier for the team whose application is to be deleted.
+    :param force: bool, optional. A flag to force deletion of the application records even if the container cannot be
+                  deleted (default is False).
+
+    :return: Tuple (str or None, int). Returns a tuple containing an error message (or None if successful) and an HTTP
+             status code (200 for success, 404 if the application does not exist, 500 for internal errors).
+
+    :raises InternalRedisError: If an error occurs while accessing Redis data.
+
+    Note: The function leverages custom error handling for Redis and Docker-related operations, ensuring application data
+    consistency across the system. It requires the `get_application_from_redis` and `delete_from_redis` functions for Redis
+    operations and `delete_container` for Docker container management.
+    """
     try:
         application = get_application_from_redis(team_id)
         if not application:
@@ -45,7 +64,23 @@ def delete_application(team_id, force=False):
 
 
 def delete_all_applications(force=False):
-    # Get all team_ids from the 'managed_applications' set
+    """
+    Iteratively deletes all applications listed in the 'managed_applications' set in Redis. It attempts to delete each
+    application's associated container and Redis records. The function can optionally force the deletion of Redis records
+    regardless of container deletion success based on the `force` parameter.
+
+    :param force: bool, optional. A flag to force deletion of the application records even if the container cannot be
+                  deleted (default is False).
+
+    :return: Tuple (list, str or None, int). Returns a tuple containing a list of team IDs for which applications were
+             attempted to be deleted, an aggregated error message (or None if all deletions were successful), and an HTTP
+             status code (200 for success, 500 if any deletions fail).
+
+    :raises InternalRedisError: If an error occurs while accessing or modifying Redis data.
+
+    Note: This function uses `get_all_team_ids` to retrieve all application team IDs and `delete_application` to handle
+    individual application deletions. It accumulates errors, if any, and returns them along with the status of the operation.
+    """
     team_ids = get_all_team_ids()
     deleted = []
     errors = []

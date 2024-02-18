@@ -20,13 +20,14 @@ class UnauthorizedError(Exception):
 
 def extract_registry_from_image_name(image_name):
     """
-    Extract the Docker registry URL from a given Docker image name.
+    Extracts the Docker registry URL from a given Docker image name. This function identifies whether the image name
+    includes a registry URL based on specific patterns within the name. A registry URL is recognized if the first segment
+    of the image name contains either a dot (indicating a domain) or a colon (indicating a port), which are typical
+    characteristics of a registry URL. If no such pattern is found, it is assumed that the image is hosted on Docker Hub,
+    and the function returns None.
 
-    Parameters:
-        image_name (str): The full name of the Docker image.
-
-    Returns:
-        str: The extracted Docker registry URL, or None if not found.
+    :param image_name: str. The full name of the Docker image which may include a registry URL, repository name, and optionally a tag.
+    :return: str or None. The extracted Docker registry URL if present; otherwise, None, indicating the image is from Docker Hub.
     """
     parts = image_name.split('/')
 

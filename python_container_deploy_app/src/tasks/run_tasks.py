@@ -21,6 +21,26 @@ class InternalError(Exception):
 
 
 def deploy_application(team_id, subdomain, image_name, registry_credentials, redeploy=True):
+    """
+    Deploys an application by running a Docker container with specified parameters, and handling deployment conditions
+    such as redeployment and subdomain availability. Updates application data in Redis upon successful deployment or
+    records the failure reason.
+
+    :param team_id: str. Unique identifier for the team deploying the application.
+    :param subdomain: str. Desired subdomain for the application's access URL.
+    :param image_name: str. Docker image to use for the application container.
+    :param registry_credentials: str. Credentials for accessing the Docker registry in 'username:password' format.
+    :param redeploy: bool, optional. Flag indicating whether to redeploy the application if it already exists (default is True).
+
+    :return: Tuple (dict, str or None, int). Returns a tuple containing the application data as a dictionary,
+             an error message (or None if successful), and an HTTP status code indicating the outcome.
+
+    :raises InternalRedisError: If saving the application data to Redis fails.
+
+    Note: The deployment logic includes checking deployment conditions, handling Docker and Redis errors,
+    and updating Redis with the deployment result. It leverages environment variables for default values like
+    Traefik domain and network, and deploy timeout.
+    """
     application = {
         "team_id": team_id,
         "subdomain": subdomain,
@@ -78,6 +98,23 @@ def deploy_application(team_id, subdomain, image_name, registry_credentials, red
 
 
 def check_deploy_conditions(team_id, subdomain, container_name, redeploy=True):
+    """
+    Checks conditions for deploying an application, such as verifying if the application or subdomain already exists,
+    and handles necessary cleanup like deleting existing containers in case of redeployment.
+
+    :param team_id: str. Unique identifier for the team associated with the application.
+    :param subdomain: str. Desired subdomain for the application's access URL.
+    :param container_name: str. Name assigned to the Docker container for the application.
+    :param redeploy: bool, optional. Flag indicating whether to redeploy (and thus delete existing container)
+                     if the application already exists (default is True).
+
+    :raises InvalidParameterError: If the application already exists and redeployment is not allowed,
+                                   or if the subdomain is already in use.
+    :raises InternalError: For any unhandled situations or Docker-related errors during cleanup.
+
+    Note: Utilizes application data from Redis to determine existence and uses Docker operations to manage containers.
+          It is intended to be called within the `deploy_application` function to ensure pre-deployment conditions are met.
+    """
     application = get_application_from_redis(team_id)
     subdomain_used = is_subdomain_used(subdomain)
 

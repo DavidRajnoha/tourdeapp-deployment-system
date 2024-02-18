@@ -11,6 +11,19 @@ client = docker.from_env()
 
 def run_container(image_name, subdomain, container_name, registry_credentials=None,
                   network=None, traefik_domain=None, timeout=60):
+    """
+    Run a Docker container from the given image name, and set up routing with Traefik.
+
+    :param image_name
+    :param subdomain: The subdomain to use for routing with Traefik
+    :param container_name
+    :param registry_credentials: Credentials for the Docker registry, in the format 'username:password'
+    :param network: The name of the Docker network to connect the container to Traefik
+    :param traefik_domain: The base domain to use for routing with Traefik
+    :param timeout
+    :return: Tuple containing the container status, container ID, container name, routed domain, container logs, and the
+             time the container was started
+    """
     try:
         logging.info(f'Attempting to pull image: {image_name}')
         if registry_credentials:
@@ -59,6 +72,19 @@ def run_container(image_name, subdomain, container_name, registry_credentials=No
 
 
 def wait_for_container(container, timeout):
+    """
+    Monitors a Docker container, waiting for it to enter a 'running' state within a specified timeout period.
+    If the container does not start within the timeout or exits, it stops and removes the container, logs the failure,
+    and raises a DockerContainerStartError with relevant details.
+
+    :param container: Docker Container object. The container to monitor.
+    :param timeout: int. The maximum amount of time (in seconds) to wait for the container to start.
+
+    :return: None. This function does not return a value but may raise an exception if the container fails to start.
+
+    :raises DockerContainerStartError: If the container fails to start within the specified timeout or exits prematurely.
+    This exception includes the error message, container logs, container status, and container ID.
+    """
     start_time = time.time()
     running = False
 

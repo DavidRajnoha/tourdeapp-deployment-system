@@ -8,6 +8,13 @@ client = docker.from_env()
 
 
 def delete_container(container_id):
+    """
+    Stop and remove a Docker container.
+
+    :param container_id: The ID of the container to stop and remove
+    :return: True if the container was stopped and removed, False if the container did not exist
+    :raises InternalDockerError: If an error occurred while stopping or removing the container
+    """
     try:
         container = client.containers.get(container_id)
         container.stop()
