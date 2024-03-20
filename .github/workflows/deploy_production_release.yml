@@ -1,0 +1,110 @@
+name: Deploy Production Release
+
+on:
+  release:
+    types: [published]
+
+# uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1
+jobs:
+  run-ansible:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Ansible playbook for deploy server
+      uses: dawidd6/action-ansible-playbook@v2.6.1
+      with:
+        # Ansible playbook filepath
+        playbook: ansible/main.yaml
+        # Ansible Galaxy requirements filepath
+        # requirements: # optional
+        # Root directory of Ansible project (defaults to current)
+        # directory: 
+        # SSH private key used to connect to the host
+        key: ${{ secrets.SSH_PRODUCTION }}
+        # Custom content to write into hosts
+        inventory: |
+          [deploy-server]
+          ${{ secrets.PRODUCTION_IP }}
+          
+          [deploy-server:vars]
+          ansible_user=${{ vars.PRODUCTION_USER }}
+          base_domain=${{ vars.PRODUCTION_DOMAIN }}
+          platform=${{ vars.PRODUCTION_ARCH }}
+          debug_mode=false
+          
+          traefik_dir=/root/traefik
+          traefik_api_url="traefik.{{ base_domain }}"
+          traefik_api_user=traefik
+          traefik_api_password=${{ secrets.PRODUCTION_TRAEFIK_PASSWORD }}
+          traefik_acme_email=${{ vars.STAGING_ACME_EMAIL }}
+          
+          redis_data_dir=/var/lib/redis
+          
+          target_app_dir=/root/dynamic_deploy
+          deploy_url="deploy.{{ base_domain }}"
+          dynamic_deploy_user=deploy
+          dynamic_deploy_password=${{ secrets.PRODUCTION_DEPLOY_PASSWORD }}
+          dynamic_deploy_number_of_rq_workers=${{ vars.DYNAMIC_DEPLOY_NUMBER_OF_RQ_WORKERS }}
+          
+          data_dir=${{ vars.PRODUCTION_DATA_DIR }}
+          grafana_admin_user=admin
+          grafana_admin_password=${{ secrets.PRODUCTION_GRAFANA_PASSWORD }}
+        # The password used for decrypting vaulted files
+        # vault_password: # optional
+        # Contents of SSH known_hosts file
+        # known_hosts: # optional
+        # Extra options that should be passed to ansible-playbook command
+        # options: # optional
+        # Set to "true" if root is required for running your playbook
+        # sudo: # optional
+        # Set to "true" if the Ansible output should not include colors (defaults to "false")
+        # no_color: # optional
+
+  run-ansible-registry:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Run Ansible playbook for deploy registry
+      uses: dawidd6/action-ansible-playbook@v2.6.1
+      with:
+        # Ansible playbook filepath
+        playbook: ansible/main.yaml
+        # Ansible Galaxy requirements filepath
+        # requirements: # optional
+        # Root directory of Ansible project (defaults to current)
+        # directory: 
+        # SSH private key used to connect to the host
+        key: ${{ secrets.SSH_PRODUCTION }}
+        # Custom content to write into hosts
+        inventory: |
+          [registry-server]
+          ${{ secrets.PRODUCTION_REGISTRY_IP }}
+          
+          [registry-server:vars]
+          ansible_user=${{ vars.PRODUCTION_USER }}
+          base_domain=${{ vars.PRODUCTION_REGISTRY_DOMAIN }}
+          platform=${{ vars.PRODUCTION_ARCH }}
+          
+          redis_data_dir=/var/lib/redis
+          
+          traefik_dir=/root/traefik
+          traefik_api_url="traefik.{{ base_domain }}"
+          traefik_api_user=traefik
+          traefik_api_password=${{ secrets.PRODUCTION_TRAEFIK_PASSWORD }}
+          traefik_acme_email="info@tourdeapp.cz"
+          
+          htpasswd_file=/root/registry/auth/htpasswd
+          htpasswd_user=${{ secrets.PRODUCTION_REGISTRY_HTPASSWD_USER }}
+          htpasswd_password=${{ secrets.PRODUCTION_REGISTRY_PASSWORD }}
+          
+          ghost_auth_user=deploy
+          ghost_auth_password=${{ secrets.PRODUCTION_DEPLOY_PASSWORD }}
+          
+          auth_url = "auth.{{ base_domain }}"
+          ghost_url = "ghost.{{ base_domain }}"
+          target_auth_dir=/root/auth
+          target_ghost_dir=/root/ghost
+          
+          debug_mode=false
+          tda_round=${{ vars.TDA_ROUND_IMAGE_PREFIX }}
