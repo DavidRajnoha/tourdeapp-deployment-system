@@ -65,6 +65,9 @@ jobs:
   run-ansible-registry:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
     - name: Run Ansible playbook for deploy registry
       uses: dawidd6/action-ansible-playbook@v2.6.1
       with:
