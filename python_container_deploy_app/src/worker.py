@@ -1,6 +1,13 @@
+import logging
+
 import redis
 import os
 from rq import Worker
+
+from shared.utils import get_log_level
+
+
+logging.basicConfig(level=get_log_level())
 
 redis_host = os.getenv('REDIS_HOST', 'redis-db')
 redis_port = int(os.getenv('REDIS_PORT', 6379))

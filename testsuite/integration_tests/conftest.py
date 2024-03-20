@@ -15,6 +15,11 @@ import os
 
 
 @pytest.fixture(scope='session')
+def docker_client():
+    return docker.from_env()
+
+
+@pytest.fixture(scope='session')
 def config():
     """Loads and returns the configuration."""
     config_parser = configparser.ConfigParser()
@@ -91,7 +96,7 @@ def registry_credentials(config):
 
 
 @pytest.fixture
-def custom_registry_image(image_name, platform, config):
+def custom_registry_image(image_name, platform, config, docker_client):
     """
     Returns the image name to be used for the application deployment after performing several operations:
 
@@ -108,7 +113,7 @@ def custom_registry_image(image_name, platform, config):
     custom_registry_password = config['images']['custom_registry_password']
 
     # Initialize Docker client
-    client = docker.from_env()
+    client = docker_client
     client.login(username=custom_registry_user, password=custom_registry_password, registry=custom_registry)
 
     # Generate a random tag

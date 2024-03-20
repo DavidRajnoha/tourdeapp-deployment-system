@@ -1,56 +1,29 @@
 import time
-
 import docker
 import logging
+
+from shared.docker_wrapper.docker_utils import extract_registry_from_image_name, DockerContainerStartError, InternalDockerError, \
+    InvalidParameterError, UnauthorizedError
+
 
 client = docker.from_env()
 
 
-class DockerContainerStartError(Exception):
-    def __init__(self, message, container_logs, container_status, container_id):
-        super().__init__(message)
-        self.container_id = container_id
-        self.container_status = container_status
-        self.container_logs = container_logs
-
-
-class InternalDockerError(Exception):
-    pass
-
-
-class InvalidParameterError(Exception):
-    pass
-
-
-class UnauthorizedError(Exception):
-    pass
-
-
-def extract_registry_from_image_name(image_name):
+def run_container(image_name, subdomain, container_name, registry_credentials=None,
+                  network=None, traefik_domain=None, timeout=60):
     """
-    Extract the Docker registry URL from a given Docker image name.
+    Run a Docker container from the given image name, and set up routing with Traefik.
 
-    Parameters:
-        image_name (str): The full name of the Docker image.
-
-    Returns:
-        str: The extracted Docker registry URL, or None if not found.
+    :param image_name
+    :param subdomain: The subdomain to use for routing with Traefik
+    :param container_name
+    :param registry_credentials: Credentials for the Docker registry, in the format 'username:password'
+    :param network: The name of the Docker network to connect the container to Traefik
+    :param traefik_domain: The base domain to use for routing with Traefik
+    :param timeout
+    :return: Tuple containing the container status, container ID, container name, routed domain, container logs, and the
+             time the container was started
     """
-    parts = image_name.split('/')
-
-    # If there's only one part, it means the image is from Docker Hub
-    if len(parts) == 1:
-        return None  # Default to Docker Hub
-
-    # Check if the first part contains a '.' or a ':', indicating it's likely a registry URL
-    if '.' in parts[0] or ':' in parts[0]:
-        return parts[0]
-
-    return None  # Default to Docker Hub
-
-
-def deploy_container(image_name, subdomain, container_name, registry_credentials=None,
-                     network=None, traefik_domain=None, timeout=60):
     try:
         logging.info(f'Attempting to pull image: {image_name}')
         if registry_credentials:
@@ -98,29 +71,20 @@ def deploy_container(image_name, subdomain, container_name, registry_credentials
         raise InternalDockerError('API error: {}'.format(str(e)))
 
 
-def start_container(container_id):
-    try:
-        if container_id is None:
-            logging.error('Container ID cannot be None')
-            raise InvalidParameterError('Container ID cannot be None')
-        container = client.containers.get(container_id)
-        if container.status == 'running':
-            logging.info(f'Container {container_id} is already running')
-            return None, f'Container {container_id} is already running'
-        container.start()
-        logging.info(f'Started container {container_id}')
-        return int(time.time()), f'Started container {container_id}'
-    except docker.errors.NotFound:
-        err = f'Container {container_id} not found'
-        logging.error(err)
-        raise InvalidParameterError(err)
-    except docker.errors.APIError as e:
-        err = f'API error for container {container_id}: {str(e)}'
-        logging.error(err)
-        raise InternalDockerError(err)
-
-
 def wait_for_container(container, timeout):
+    """
+    Monitors a Docker container, waiting for it to enter a 'running' state within a specified timeout period.
+    If the container does not start within the timeout or exits, it stops and removes the container, logs the failure,
+    and raises a DockerContainerStartError with relevant details.
+
+    :param container: Docker Container object. The container to monitor.
+    :param timeout: int. The maximum amount of time (in seconds) to wait for the container to start.
+
+    :return: None. This function does not return a value but may raise an exception if the container fails to start.
+
+    :raises DockerContainerStartError: If the container fails to start within the specified timeout or exits prematurely.
+    This exception includes the error message, container logs, container status, and container ID.
+    """
     start_time = time.time()
     running = False
 
@@ -145,25 +109,3 @@ def wait_for_container(container, timeout):
             logging.info(f'Stopped and removed container {container.id}')
 
             raise DockerContainerStartError(err, container_logs, container_status, container_id)
-
-
-def delete_container(container_id):
-    try:
-        container = client.containers.get(container_id)
-        container.stop()
-        container.remove()
-        msg = f'Stopped and removed container {container_id}\n'
-        logging.info(msg)
-        return True
-    except docker.errors.NotFound:
-        msg = f'Container {container_id} already does not exist'
-        logging.info(msg)
-        return False
-    except docker.errors.APIError as e:
-        err = f'API error for container {container_id}: {str(e)}'
-        logging.error(err)
-        raise InternalDockerError(err)
-    except docker.errors.NullResource as e:
-        err = f'Null resource for container {container_id}: {str(e)}'
-        logging.error(err)
-        raise InternalDockerError(err)
