@@ -43,7 +43,7 @@
   file:
     path: "{{ traefik_dir }}/acme.json"
     state: absent
-  when: acme_stat.stat is defined and acme_stat.stat.isdir
+  when: acme_stat.stat is defined and acme_stat.isdir is defined and acme_stat.stat.isdir
 
 - name: Set permissions for acme.json
   # TODO: On a new run creates directory instead of file
@@ -52,7 +52,7 @@
     state: touch
     owner: root
     group: root
-    mode: '0600'
+    mode: "0600"
 
 - name: Create the traefik container
   docker_container:
